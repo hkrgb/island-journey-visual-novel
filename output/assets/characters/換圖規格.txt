@@ -1,0 +1,24 @@
+《離島旅程》角色立繪換圖規格
+
+檔案格式：PNG（RGBA 透明背景）
+固定畫布：900 × 900 px
+構圖：頭部至腰部的半身立繪，人物置中、底部對齊
+安全範圍：頭頂及左右手不要貼邊
+
+每個角色資料夾使用相同五個檔名：
+- neutral.png　平常
+- joy.png　　　喜／溫柔開心
+- anger.png　　怒
+- sad.png　　　哀
+- delight.png　樂／非常興奮
+
+更換方法：
+把新圖改成相同檔名，直接覆蓋角色資料夾內的 PNG 即可。
+毋須修改 game.js 或 style.css。
+
+角色資料夾：
+- hoito：海淘
+- kitty：淇
+- sining：思凝
+- holiday-auntie：渡假屋大媽
+- choi-wan：彩雲（待生成）

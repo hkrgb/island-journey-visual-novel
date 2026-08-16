@@ -1,0 +1,20 @@
+# Source material stays local and is never published to GitHub.
+/書/
+/人物設定/
+/ig-post/
+/短片/
+/遊戲玩法及流程/
+/tmp/
+/*.zip
+
+# Local authentication and debug helpers.
+/firebase-debug.log
+/登入GitHub.cmd
+/重新登入Firebase.cmd
+/.firebase/
+
+# OS/editor files.
+.DS_Store
+Thumbs.db
+.vscode/
+
