@@ -12,7 +12,7 @@
    const cache={};
    await Promise.all([...new Set(refs)].map(async ref=>{const id=ref.slice(10),response=await fetch(`https://firestore.googleapis.com/v1/projects/island-journey-rgb/databases/(default)/documents/media/${encodeURIComponent(id)}`);if(response.ok){const data=await response.json();cache[ref]=data.fields?.dataUrl?.stringValue||''}}));
    const resolve=value=>cache[value]||value;
-   window.STORY=p.story;
+   window.STORY=(p.story||[]).flatMap(scene=>Array.isArray(scene.lines)?scene.lines.map((line,index)=>{const item={...scene,...line};delete item.lines;if(index>0){delete item.c;delete item.start;delete item.place}if(index<scene.lines.length-1)delete item.end;return item}):[scene]);
    window.CHAPTERS=p.chapters||window.CHAPTERS;
    window.GAME_SETTINGS=p.settings||{};
    window.GAME_ASSETS={bg:Object.fromEntries(Object.entries(p.assets?.bg||{}).map(([k,v])=>[k,resolve(v)])),sprite:Object.fromEntries(Object.entries(p.assets?.sprite||{}).map(([k,v])=>[k,resolve(v)]))};
