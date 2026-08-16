@@ -22,3 +22,4 @@
 @keyframes seaWind{from{transform:translateX(-25%);opacity:0}40%{opacity:1}to{transform:translateX(25%);opacity:0}}
 @media(prefers-reduced-motion:reduce){#scene-motion,#scene-wipe{display:none}.sprite,.bg-layer{transition:none;animation:none}}
 @media(max-width:700px){.sprite{width:72vw;height:69vh;bottom:18%}}
+.chapter-video{position:absolute;inset:0;z-index:30;background:#05080b;display:grid;place-items:center}.chapter-video.hidden{display:none}.chapter-video video{width:100%;height:100%;object-fit:contain}.chapter-video button{position:absolute;right:28px;top:24px;border:1px solid #fff8;background:#071720bb;color:#fff;padding:10px 16px;letter-spacing:.08em}
