@@ -4,6 +4,7 @@ service cloud.firestore {
     function isAdmin() { return request.auth != null && request.auth.token.email_verified == true && request.auth.token.email == 'info@rgb-workshop.com'; }
     match /content/published { allow read: if true; allow write: if isAdmin(); }
     match /content/draft { allow read, write: if isAdmin(); }
+    match /media/{mediaId} { allow read: if true; allow write: if isAdmin(); }
     match /{document=**} { allow read, write: if false; }
   }
 }
