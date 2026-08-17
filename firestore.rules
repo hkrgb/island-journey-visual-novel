@@ -5,6 +5,9 @@ service cloud.firestore {
     match /content/published { allow read: if true; allow write: if isAdmin(); }
     match /content/draft { allow read, write: if isAdmin(); }
     match /media/{mediaId} { allow read: if true; allow write: if isAdmin(); }
+    match /projects/{projectId} { allow read, write: if isAdmin(); }
+    match /projects/{projectId}/content/published { allow read: if true; allow write: if isAdmin(); }
+    match /projects/{projectId}/content/draft { allow read, write: if isAdmin(); }
     match /{document=**} { allow read, write: if false; }
   }
 }
