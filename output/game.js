@@ -23,5 +23,5 @@
    if(window.GAME_SETTINGS.logoImage)window.GAME_SETTINGS.logoImage=resolve(window.GAME_SETTINGS.logoImage);
   }
  }catch(e){console.warn('Using bundled story',e)}
- finally{const script=document.createElement('script');script.src='game-core.js?v=14';document.body.appendChild(script)}
+ finally{const script=document.createElement('script');script.src='game-core.js?v=15';document.body.appendChild(script)}
 })();
