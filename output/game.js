@@ -15,10 +15,11 @@
    window.STORY=(p.story||[]).flatMap(scene=>Array.isArray(scene.lines)?scene.lines.map((line,index)=>{const item={...scene,...line};delete item.lines;if(index>0){delete item.c;delete item.start;delete item.place}if(index<scene.lines.length-1)delete item.end;return item}):[scene]);
    window.CHAPTERS=p.chapters||window.CHAPTERS;
    window.GAME_SETTINGS=p.settings||{};
+   window.GAME_CHARACTERS=p.characters||[];
    window.GAME_ASSETS={bg:Object.fromEntries(Object.entries(p.assets?.bg||{}).map(([k,v])=>[k,resolve(v)])),sprite:Object.fromEntries(Object.entries(p.assets?.sprite||{}).map(([k,v])=>[k,resolve(v)]))};
    if(window.GAME_SETTINGS.coverImage)window.GAME_SETTINGS.coverImage=resolve(window.GAME_SETTINGS.coverImage);
    if(window.GAME_SETTINGS.logoImage)window.GAME_SETTINGS.logoImage=resolve(window.GAME_SETTINGS.logoImage);
   }
  }catch(e){console.warn('Using bundled story',e)}
- finally{const script=document.createElement('script');script.src='game-core.js?v=11';document.body.appendChild(script)}
+ finally{const script=document.createElement('script');script.src='game-core.js?v=12';document.body.appendChild(script)}
 })();
