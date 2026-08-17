@@ -1,0 +1,5 @@
+.display-settings{display:grid;gap:16px}
+.display-settings section{padding:18px;background:#f5f8f9;border:1px solid #d8e2e6}
+.display-settings h3{margin:0 0 14px;font-size:15px}
+.display-settings input[type=color]{height:42px;padding:4px}
+.display-settings output{display:block;margin-top:6px;color:var(--blue);font-weight:700}
