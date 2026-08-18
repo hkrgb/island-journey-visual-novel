@@ -30,7 +30,12 @@
  }catch(e){console.warn('Using bundled story',e)}
  finally{
   const script=document.createElement('script');
-  script.src='game-core.js?v=22';
+  script.src='game-core.js?v=23';
+  script.onload=function(){
+    const o=document.createElement('script');
+    o.src='stats-overlay.js?v=3';
+    document.body.appendChild(o);
+  };
   script.onerror=()=>console.error('game-core.js failed to load');
   document.body.appendChild(script);
  }
