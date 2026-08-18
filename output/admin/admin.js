@@ -10,5 +10,16 @@ fetch(SRC+'?t='+Date.now()).then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);
   if(!code.includes("'defaultBg'")){
     code=code.replace("'logoImage','defaultMusic'","'logoImage','defaultBg','defaultMusic'");
   }
+  code=code.replace(
+    "['dialogueFontSize','dialogueBoxColor','dialogueBoxOpacity','dialogueBoxBlur','narrationBoxColor','narrationBoxOpacity','narrationBoxBlur']",
+    "['nameFontSize','dialogueFontSize','dialogueBoxColor','dialogueBoxOpacity','dialogueBoxBlur','narrationBoxColor','narrationBoxOpacity','narrationBoxBlur']"
+  );
+  if(!code.includes('nameFontSize=+')){
+    code=code.replace(
+      "settings.dialogueFontSize=+$('#dialogueFontSize').value;",
+      "settings.nameFontSize=+$('#nameFontSize').value||16;settings.dialogueFontSize=+$('#dialogueFontSize').value;"
+    );
+  }
+  code=code.replace("dialogueFontSize:22,","dialogueFontSize:22,nameFontSize:16,");
   return import(URL.createObjectURL(new Blob([code],{type:'text/javascript'})));
 }).catch(e=>{console.error(e);const m=document.getElementById('loginMsg');if(m)m.textContent='載入後台失敗：'+e.message});
