@@ -21,7 +21,7 @@
    if(response.ok){const data=await response.json(),raw=data.fields?.payload?.stringValue;if(raw)p=JSON.parse(raw)}
   }
   if(p){
-   const refs=[...Object.values(p.assets?.bg||{}),...Object.values(p.assets?.sprite||{}),p.settings?.coverImage,p.settings?.logoImage].filter(v=>v?.startsWith?.('firestore:'));
+   const refs=[...Object.values(p.assets?.bg||{}),...Object.values(p.assets?.sprite||{}),p.settings?.coverImage,p.settings?.logoImage,p.settings?.defaultBg].filter(v=>v?.startsWith?.('firestore:'));
    const cache={};
    await Promise.all([...new Set(refs)].map(async ref=>{const id=ref.slice(10),response=await fetch(`https://firestore.googleapis.com/v1/projects/island-journey-rgb/databases/(default)/documents/media/${encodeURIComponent(id)}`);if(response.ok){const data=await response.json();cache[ref]=data.fields?.dataUrl?.stringValue||''}}));
    const resolve=value=>cache[value]||value;
@@ -32,6 +32,7 @@
    window.GAME_ASSETS={bg:Object.fromEntries(Object.entries(p.assets?.bg||{}).map(([k,v])=>[k,resolve(v)])),sprite:Object.fromEntries(Object.entries(p.assets?.sprite||{}).map(([k,v])=>[k,resolve(v)]))};
    if(window.GAME_SETTINGS.coverImage)window.GAME_SETTINGS.coverImage=resolve(window.GAME_SETTINGS.coverImage);
    if(window.GAME_SETTINGS.logoImage)window.GAME_SETTINGS.logoImage=resolve(window.GAME_SETTINGS.logoImage);
+   if(window.GAME_SETTINGS.defaultBg)window.GAME_SETTINGS.defaultBg=resolve(window.GAME_SETTINGS.defaultBg);
   }
  }catch(e){console.warn('Using bundled story',e)}
  finally{
@@ -41,6 +42,9 @@
     const o=document.createElement('script');
     o.src='stats-overlay.js?v=4';
     document.body.appendChild(o);
+    const e=document.createElement('script');
+    e.src='game-enhance.js?v=1';
+    document.body.appendChild(e);
   };
   script.onerror=()=>console.error('game-core.js failed to load');
   document.body.appendChild(script);
