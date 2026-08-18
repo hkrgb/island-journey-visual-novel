@@ -66,29 +66,29 @@
 
   function getNameSize(){
     var n = parseInt(localStorage.getItem(KEY_NAME) || '', 10);
-    if(!n || n < 12 || n > 36){
+    if(!n || n < 12 || n > 48){
       var g = window.GAME_SETTINGS || {};
       n = parseInt(g.nameFontSize || g.dialogueFontSize || 16, 10) || 16;
     }
-    return Math.max(12, Math.min(36, n));
+    return Math.max(12, Math.min(48, n));
   }
   function getBodySize(){
     var n = parseInt(localStorage.getItem(KEY_BODY) || '', 10);
-    if(!n || n < 14 || n > 36){
+    if(!n || n < 14 || n > 56){
       var g = window.GAME_SETTINGS || {};
       n = parseInt(g.dialogueFontSize || 22, 10) || 22;
     }
-    return Math.max(14, Math.min(36, n));
+    return Math.max(14, Math.min(56, n));
   }
   function applyFonts(){
     var nameSz = getNameSize();
     var bodySz = getBodySize();
     var p = document.querySelector('.textbox > p, #dialogue');
-    if(p) p.style.fontSize = bodySz + 'px';
+    if(p) p.style.setProperty('font-size', bodySz + 'px', 'important');
     var name = document.querySelector('.nameplate span, #speaker');
-    if(name) name.style.fontSize = nameSz + 'px';
+    if(name) name.style.setProperty('font-size', nameSz + 'px', 'important');
     var en = document.querySelector('.nameplate small, #speakerEn');
-    if(en) en.style.fontSize = Math.max(9, Math.round(nameSz * 0.65)) + 'px';
+    if(en) en.style.setProperty('font-size', Math.max(9, Math.round(nameSz * 0.65)) + 'px', 'important');
     var nl = document.getElementById('nameFontSizeLabel');
     if(nl) nl.textContent = nameSz + 'px';
     var bl = document.getElementById('bodyFontSizeLabel');
@@ -101,12 +101,12 @@
     }catch(e){}
   }
   function setNameSize(sz){
-    sz = Math.max(12, Math.min(36, sz|0));
+    sz = Math.max(12, Math.min(48, sz|0));
     localStorage.setItem(KEY_NAME, String(sz));
     applyFonts();
   }
   function setBodySize(sz){
-    sz = Math.max(14, Math.min(36, sz|0));
+    sz = Math.max(14, Math.min(56, sz|0));
     localStorage.setItem(KEY_BODY, String(sz));
     applyFonts();
   }
