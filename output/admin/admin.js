@@ -1,37 +1,7 @@
 const SRC='https://raw.githubusercontent.com/hkrgb/island-journey-visual-novel/c5fceb05455bae9a3d049ccf5b46260c33ef23c3/output/admin/admin.js';
-const REPLACEMENTS=[
-  ["selectedFolder='characters',autoSaveTimer=null;","selectedFolder='characters',autoSaveTimer=null,expandedChar=-1;"],
-  ["function spriteOptions(value){const custom=characters.flatMap(c=>Object.keys(c.moods||{}).map(m=>c.key+':'+m));return '<option value=\"\">沒有立繪</option>'+[...Object.keys({...BASE_SPR,...assets.sprite}),...custom].map(x=>'<option '+(x===value?'selected':'')+'>'+esc(x)+'</option>').join('')}","function spriteOptions(value,characterName){\n  let list=[];\n  if(characterName){\n    const ch=characters.find(c=>c.name===characterName||c.key===characterName);\n    if(ch) list=Object.keys(ch.moods||{}).map(m=>ch.key+':'+m);\n  }\n  if(!list.length){\n    list=[...Object.keys({...BASE_SPR,...assets.sprite}),...characters.flatMap(c=>Object.keys(c.moods||{}).map(m=>c.key+':'+m))];\n  }\n  return '<option value=\"\">沒有立繪</option>'+list.map(x=>'<option '+(x===value?'selected':'')+'>'+esc(x)+'</option>').join('');\n}"],
-  ["function dialogueHtml(s){return s.lines.map((l,i)=>'<article class=\"dialogue-card '+(i===currentLine?'active':'')+'\" data-line=\"'+i+'\"><div class=\"dialogue-number\">對白 '+(i+1)+'</div><div class=\"line-grid\"><label>人物名稱<input data-field=\"sp\" value=\"'+esc(l.sp)+'\"></label><label>英文名稱<input data-field=\"en\" value=\"'+esc(l.en)+'\"></label><label>角色立繪／表情<select data-field=\"sprite\">'+spriteOptions(l.sprite)+'</select></label><label>位置<select data-field=\"side\"><option value=\"\">自動</option><option value=\"left\" '+(l.side==='left'?'selected':'')+'>左</option><option value=\"right\" '+(l.side==='right'?'selected':'')+'>右</option></select></label></div><label>對白／旁白<textarea data-field=\"t\" rows=\"4\">'+esc(l.t)+'</textarea></label>'+choiceRows(l)+'<div class=\"line-actions\"><button type=\"button\" data-action=\"up\">↑</button><button type=\"button\" data-action=\"down\">↓</button><button type=\"button\" data-action=\"duplicate\">複製</button><button type=\"button\" data-action=\"delete\" class=\"danger\">刪除</button></div></article>').join('')}","function dialogueHtml(s){\n  const datalist='<datalist id=\"charNameList\">'+characters.map(c=>'<option value=\"'+esc(c.name)+'\">').join('')+'</datalist>';\n  return s.lines.map((l,i)=>'<article class=\"dialogue-card '+(i===currentLine?'active':'')+'\" data-line=\"'+i+'\">'+
-    '<div class=\"dialogue-number\">對白 '+(i+1)+'</div>'+
-    '<div class=\"line-grid\">'+
-    '<label>人物名稱<input data-field=\"sp\" value=\"'+esc(l.sp)+'\" list=\"charNameList\" autocomplete=\"off\"></label>'+
-    '<label>英文名稱<input data-field=\"en\" value=\"'+esc(l.en)+'\"></label>'+
-    '<label>角色立繪／表情<select data-field=\"sprite\">'+spriteOptions(l.sprite,l.sp)+'</select></label>'+
-    '<label>位置<select data-field=\"side\">'+
-    '<option value=\"\">自動</option>'+
-    '<option value=\"left\" '+(l.side==='left'?'selected':'')+'>左</option>'+
-    '<option value=\"center\" '+(l.side==='center'?'selected':'')+'>中</option>'+
-    '<option value=\"right\" '+(l.side==='right'?'selected':'')+'>右</option>'+
-    '</select></label></div>'+
-    '<label>對白／旁白<textarea data-field=\"t\" rows=\"4\">'+esc(l.t)+'</textarea></label>'+
-    choiceRows(l)+
-    '<div class=\"line-actions\">'+
-    '<button type=\"button\" data-action=\"up\">↑</button>'+
-    '<button type=\"button\" data-action=\"down\">↓</button>'+
-    '<button type=\"button\" data-action=\"duplicate\">複製</button>'+
-    '<button type=\"button\" data-action=\"delete\" class=\"danger\">刪除</button>'+
-    '</div></article>').join('')+datalist;\n}"],
-  ["card.querySelectorAll('[data-field]').forEach(el=>el.oninput=()=>{l[el.dataset.field]=el.value;mark();tree();visual()});","card.querySelectorAll('[data-field]').forEach(el=>el.oninput=()=>{\n      l[el.dataset.field]=el.value;mark();\n      if(el.dataset.field==='sp'){\n        const sel=card.querySelector('[data-field=\"sprite\"]');\n        if(sel){const cur=l.sprite;sel.innerHTML=spriteOptions(cur,l.sp);l.sprite=sel.value}\n      }\n      tree();visual();\n    });"],
-];
-
 fetch(SRC+'?t='+Date.now())
   .then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.text()})
   .then(code=>{
-    for(const [old,neu] of REPLACEMENTS){
-      if(code.indexOf(old)<0){console.warn('patch miss', old.slice(0,60));continue}
-      code=code.replace(old,neu);
-    }
     const blob=new Blob([code],{type:'text/javascript'});
     return import(URL.createObjectURL(blob));
   })
