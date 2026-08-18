@@ -44,7 +44,134 @@ function folder(){return library.folders.find(f=>f.id===selectedFolder)}
 function renderLibrary(){if(!folder())selectedFolder=library.folders[0]?.id||'characters';$('#folderSelect').value=selectedFolder;const f=folder();$('#assetGrid').innerHTML=(f?.files||[]).map((a,i)=>'<article class="asset-card">'+(a.type==='video'?'<video src="'+esc(a.url)+'" controls preload="metadata"></video>':a.type==='audio'?'<audio src="'+esc(a.url)+'" controls></audio>':'<img src="'+esc(a.url)+'" alt="">')+'<div><b>'+esc(a.name)+'</b><code>'+esc(a.url)+'</code><div><button type="button" data-copy="'+i+'">複製 URL</button><button type="button" data-remove="'+i+'" class="danger">移除記錄</button></div></div></article>').join('')||'<p class="empty-assets">此分類尚未登記素材。</p>';document.querySelectorAll('[data-copy]').forEach(b=>b.onclick=()=>navigator.clipboard.writeText(f.files[+b.dataset.copy].url).then(()=>setStatus('URL 已複製')));document.querySelectorAll('[data-remove]').forEach(b=>b.onclick=()=>{if(confirm('確定移除此 URL 記錄？')){f.files.splice(+b.dataset.remove,1);mark('素材記錄已移除');renderLibrary()}})}
 function showLibrary(){openChapter=-1;selectedScene=-1;mode='assets';hideForms();$('#assetForm').hidden=false;renderLibrary();tree()}
 function showCharacters(){openChapter=-1;selectedScene=-1;mode='characters';hideForms();$('#characterForm').hidden=false;renderCharacters();tree()}
-function renderCharacters(){$('#characterList').innerHTML=characters.map((c,i)=>'<article class="character-card" data-character="'+i+'"><div class="character-head"><b>'+esc(c.name)+'</b><button type="button" data-delete-character="'+i+'">刪除</button></div><div class="grid"><label>角色名稱<input data-char-field="name" value="'+esc(c.name)+'"></label><label>代號<input data-char-field="key" value="'+esc(c.key)+'"></label></div><label>表情圖片（每行：表情名稱 | 圖片 URL）<textarea data-char-field="moods" rows="6">'+esc(Object.entries(c.moods||{}).map(([k,v])=>k+' | '+v).join('\n'))+'</textarea></label></article>').join('')||'<p class="empty-assets">尚未建立角色。</p>';document.querySelectorAll('[data-character]').forEach(card=>card.querySelectorAll('[data-char-field]').forEach(el=>el.oninput=()=>{const c=characters[+card.dataset.character];if(el.dataset.charField==='moods')c.moods=Object.fromEntries(el.value.split('\n').filter(Boolean).map(x=>{const [k,...v]=x.split('|');return[k.trim(),v.join('|').trim()]}));else c[el.dataset.charField]=el.value;mark('角色資料已修改');refreshSelects()}));document.querySelectorAll('[data-delete-character]').forEach(b=>b.onclick=()=>{characters.splice(+b.dataset.deleteCharacter,1);mark('角色已刪除');renderCharacters();refreshSelects()})}
+
+function moodsToArray(moods){return Object.entries(moods||{}).map(([name,url])=>({name,url}))}
+function arrayToMoods(arr){const o={};arr.forEach(m=>{if(m.name.trim())o[m.name.trim()]=m.url||''});return o}
+
+function renderCharacters(){
+  if(!characters.length){
+    $('#characterList').innerHTML='<p class="empty-assets">尚未建立角色。請在上方新增。</p>';
+    return;
+  }
+  $('#characterList').innerHTML=characters.map((c,i)=>{
+    const moods=moodsToArray(c.moods);
+    const moodHtml=moods.map((m,mi)=>`
+      <div class="mood-row" data-mood="${mi}">
+        <div class="mood-preview">${m.url?`<img src="${esc(m.url)}" alt="" onerror="this.style.display='none'">`:'<span class="no-preview">無圖</span>'}</div>
+        <div class="mood-fields">
+          <label>表情名稱<input data-mood-field="name" value="${esc(m.name)}" placeholder="例如：喜、怒、哀、樂"></label>
+          <label>圖片 URL<input data-mood-field="url" value="${esc(m.url)}" placeholder="https://..."></label>
+        </div>
+        <div class="mood-actions">
+          <button type="button" data-mood-up title="上移">↑</button>
+          <button type="button" data-mood-down title="下移">↓</button>
+          <button type="button" data-mood-del class="danger" title="刪除">×</button>
+        </div>
+      </div>`).join('')||'<p class="mood-empty">尚未加入任何表情</p>';
+    return `
+      <article class="character-card" data-character="${i}">
+        <div class="character-head">
+          <b>${esc(c.name)||'未命名角色'}</b>
+          <div class="char-actions">
+            <button type="button" data-char-up title="角色上移">↑</button>
+            <button type="button" data-char-down title="角色下移">↓</button>
+            <button type="button" data-delete-character="${i}" class="danger">刪除角色</button>
+          </div>
+        </div>
+        <div class="grid">
+          <label>角色名稱<input data-char-field="name" value="${esc(c.name)}"></label>
+          <label>代號（英文／系統用）<input data-char-field="key" value="${esc(c.key)}"></label>
+        </div>
+        <div class="moods-section">
+          <div class="moods-head"><b>表情列表</b><button type="button" data-add-mood>＋ 新增表情</button></div>
+          <div class="mood-list">${moodHtml}</div>
+        </div>
+      </article>`;
+  }).join('');
+
+  // Character level events
+  document.querySelectorAll('[data-character]').forEach(card=>{
+    const ci=+card.dataset.character;
+    const c=characters[ci];
+
+    card.querySelectorAll('[data-char-field]').forEach(el=>el.oninput=()=>{
+      c[el.dataset.charField]=el.value;
+      mark('角色資料已修改');
+      refreshSelects();
+      // update header name live
+      const head=card.querySelector('.character-head b');
+      if(head&&el.dataset.charField==='name')head.textContent=el.value||'未命名角色';
+    });
+
+    card.querySelector('[data-char-up]')?.addEventListener('click',()=>{
+      if(ci<=0)return;
+      [characters[ci-1],characters[ci]]=[characters[ci],characters[ci-1]];
+      mark('角色次序已調整');
+      renderCharacters();refreshSelects();
+    });
+    card.querySelector('[data-char-down]')?.addEventListener('click',()=>{
+      if(ci>=characters.length-1)return;
+      [characters[ci+1],characters[ci]]=[characters[ci],characters[ci+1]];
+      mark('角色次序已調整');
+      renderCharacters();refreshSelects();
+    });
+    card.querySelector('[data-delete-character]')?.addEventListener('click',()=>{
+      if(!confirm('確定刪除呢個角色同所有表情？'))return;
+      characters.splice(ci,1);
+      mark('角色已刪除');
+      renderCharacters();refreshSelects();
+    });
+
+    // Mood events
+    card.querySelector('[data-add-mood]')?.addEventListener('click',()=>{
+      const arr=moodsToArray(c.moods);
+      arr.push({name:'新表情',url:''});
+      c.moods=arrayToMoods(arr);
+      mark('已新增表情');
+      renderCharacters();refreshSelects();
+    });
+
+    card.querySelectorAll('.mood-row').forEach(row=>{
+      const mi=+row.dataset.mood;
+      const arr=moodsToArray(c.moods);
+
+      row.querySelectorAll('[data-mood-field]').forEach(el=>el.oninput=()=>{
+        arr[mi][el.dataset.moodField]=el.value;
+        c.moods=arrayToMoods(arr);
+        mark('表情已修改');
+        refreshSelects();
+        // live preview update
+        if(el.dataset.moodField==='url'){
+          const prev=row.querySelector('.mood-preview');
+          if(el.value)prev.innerHTML=`<img src="${esc(el.value)}" alt="" onerror="this.parentElement.innerHTML='<span class=\\'no-preview\\'>無圖</span>'">`;
+          else prev.innerHTML='<span class="no-preview">無圖</span>';
+        }
+      });
+
+      row.querySelector('[data-mood-up]')?.addEventListener('click',()=>{
+        if(mi<=0)return;
+        [arr[mi-1],arr[mi]]=[arr[mi],arr[mi-1]];
+        c.moods=arrayToMoods(arr);
+        mark('表情次序已調整');
+        renderCharacters();refreshSelects();
+      });
+      row.querySelector('[data-mood-down]')?.addEventListener('click',()=>{
+        if(mi>=arr.length-1)return;
+        [arr[mi+1],arr[mi]]=[arr[mi],arr[mi+1]];
+        c.moods=arrayToMoods(arr);
+        mark('表情次序已調整');
+        renderCharacters();refreshSelects();
+      });
+      row.querySelector('[data-mood-del]')?.addEventListener('click',()=>{
+        arr.splice(mi,1);
+        c.moods=arrayToMoods(arr);
+        mark('表情已刪除');
+        renderCharacters();refreshSelects();
+      });
+    });
+  });
+}
+
 function syncSettings(){Object.entries(sf).forEach(([k,e])=>settings[k]=e.value);$('#projectTitle').textContent=settings.projectName||'未命名遊戲';settingsVisual();mark('遊戲設定已修改')}
 function syncDisplay(changed=true){settings.dialogueFontSize=+$('#dialogueFontSize').value;settings.dialogueBoxColor=$('#dialogueBoxColor').value;settings.dialogueBoxOpacity=+$('#dialogueBoxOpacity').value;settings.dialogueBoxBlur=+$('#dialogueBoxBlur').value;settings.narrationBoxColor=$('#narrationBoxColor').value;settings.narrationBoxOpacity=+$('#narrationBoxOpacity').value;settings.narrationBoxBlur=+$('#narrationBoxBlur').value;$('#dialogueFontSizeValue').textContent=settings.dialogueFontSize+' px';$('#dialogueBoxOpacityValue').textContent=settings.dialogueBoxOpacity+'%';$('#dialogueBoxBlurValue').textContent=settings.dialogueBoxBlur+' px';$('#narrationBoxOpacityValue').textContent=settings.narrationBoxOpacity+'%';$('#narrationBoxBlurValue').textContent=settings.narrationBoxBlur+' px';if(changed)mark('全域閱讀設定已修改')}
 ['dialogueBoxColor','dialogueBoxBlur','narrationBoxColor','narrationBoxOpacity','narrationBoxBlur'].forEach(id=>$('#'+id).oninput=()=>syncDisplay());
