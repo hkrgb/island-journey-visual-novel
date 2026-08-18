@@ -8,7 +8,7 @@ const BASE_BGS={ferry:'assets/ferry-cabin.png',office:'assets/office.jpg',market
 const BASE_SPR={hoitoNeutral:'assets/characters/hoito/neutral.png',hoitoJoy:'assets/characters/hoito/joy.png',hoitoAnger:'assets/characters/hoito/anger.png',hoitoSad:'assets/characters/hoito/sad.png',hoitoDelight:'assets/characters/hoito/delight.png',kittyNeutral:'assets/characters/kitty/neutral.png',kittyJoy:'assets/characters/kitty/joy.png',kittyAnger:'assets/characters/kitty/anger.png',kittySad:'assets/characters/kitty/sad.png',kittyDelight:'assets/characters/kitty/delight.png',siningNeutral:'assets/characters/sining/neutral.png',siningHappy:'assets/characters/sining/joy.png',siningAnger:'assets/characters/sining/anger.png',siningCry:'assets/characters/sining/sad.png',siningResolve:'assets/characters/sining/delight.png',auntieNeutral:'assets/characters/holiday-auntie/neutral.png',auntieJoy:'assets/characters/holiday-auntie/joy.png',auntieAnger:'assets/characters/holiday-auntie/anger.png',auntieSad:'assets/characters/holiday-auntie/sad.png',auntieDelight:'assets/characters/holiday-auntie/delight.png'};
 const DEFAULT_SETTINGS={projectName:'離島旅程',siteTitle:'離島旅程｜動畫電影視覺小說',coverImage:'assets/official/cover-island.jpg',logoImage:'assets/official/title-logo.png',defaultMusic:'',mapsApiKey:'',edition:'ANIMATED FILM NOVEL · COMPLETE EDITION',startLabel:'開始旅程',resumeLabel:'繼續閱讀',contentsLabel:'章節目錄',credit:'原作 · 動畫 · 導演　郭志民',award:'OFFICIAL SELECTION\nAI FILM FEST 2026',endingTitle:'離島旅程 · 完',endingQuote:'「累嗎？休息一會吧。\n再前行，應該有更好的風景。」',endingNote:'人沒法掌控風向，但可以調整船的帆。',againLabel:'重新閱讀',dialogueFontSize:22,dialogueBoxColor:'#061a28',dialogueBoxOpacity:88,dialogueBoxBlur:6,narrationBoxColor:'#252d31',narrationBoxOpacity:82,narrationBoxBlur:2};
 const sf=Object.fromEntries(['projectName','siteTitle','coverImage','logoImage','defaultMusic','mapsApiKey','edition','startLabel','resumeLabel','contentsLabel','credit','award','endingTitle','endingQuote','endingNote','againLabel'].map(k=>[k,$('#'+k)]));
-let chapters=[],scenes=[],settings={},assets={bg:{},sprite:{}},library={folders:[]},characters=[],mediaCache={},projects=[],currentProject='island-journey',openChapter=-1,selectedScene=-1,mode='none',dirty=false,currentLine=0,selectedFolder='characters',autoSaveTimer=null;
+let chapters=[],scenes=[],settings={},assets={bg:{},sprite:{}},library={folders:[]},characters=[],mediaCache={},projects=[],currentProject='island-journey',openChapter=-1,selectedScene=-1,mode='none',dirty=false,currentLine=0,selectedFolder='characters',autoSaveTimer=null,expandedChar=-1;
 const SITE_ROOT='https://hkrgb.github.io/island-journey-visual-novel/',REPO_UPLOAD='https://github.com/hkrgb/island-journey-visual-novel/upload/main/output/assets/uploads/';
 const contentDoc=kind=>currentProject==='island-journey'?doc(db,'content',kind):doc(db,'projects',currentProject,'content',kind);
 const esc=x=>String(x==null?'':x).replace(/[&<>"']/g,c=>({'&':'&','<':'<','>':'>','"':'"',"'":'&#39;'}[c]));
@@ -22,7 +22,21 @@ function setStatus(t){$('#status').textContent=t;$('#count').textContent=chapter
 function mark(t='內容已修改'){dirty=true;setStatus(t);if(autoSaveTimer)clearTimeout(autoSaveTimer);autoSaveTimer=setTimeout(()=>{if(dirty)save('draft')},45000)}
 function normalizeStory(raw){if(raw.some(s=>Array.isArray(s.lines)))return structuredClone(raw);let c=0;return raw.map((s,i)=>{if(s.c!==undefined)c=s.c;return{c,name:s.place||('場景 '+(i+1)),bg:s.bg||'ferry',place:s.place||'',start:!!s.start,end:!!s.end,lines:[{sp:s.sp||'旁白',en:s.en||'',sprite:s.sprite||'',side:s.side||'',t:s.t||''}]}})}
 function refreshSelects(){const chapterOptions=chapters.map((c,i)=>'<option value="'+i+'">'+(i+1)+'. '+esc(c.name)+'</option>').join('');$('#sceneChapter').innerHTML=chapterOptions;$('#bg').innerHTML=Object.keys({...BASE_BGS,...assets.bg}).map(x=>'<option>'+esc(x)+'</option>').join('')}
-function spriteOptions(value){const custom=characters.flatMap(c=>Object.keys(c.moods||{}).map(m=>c.key+':'+m));return '<option value="">沒有立繪</option>'+[...Object.keys({...BASE_SPR,...assets.sprite}),...custom].map(x=>'<option '+(x===value?'selected':'')+'>'+esc(x)+'</option>').join('')}
+
+function spriteOptions(value,characterName){
+  let list=[];
+  if(characterName){
+    const ch=characters.find(c=>c.name===characterName||c.key===characterName);
+    if(ch){
+      list=Object.keys(ch.moods||{}).map(m=>ch.key+':'+m);
+    }
+  }
+  if(!list.length){
+    list=[...Object.keys({...BASE_SPR,...assets.sprite}),...characters.flatMap(c=>Object.keys(c.moods||{}).map(m=>c.key+':'+m))];
+  }
+  return '<option value="">沒有立繪</option>'+list.map(x=>'<option '+(x===value?'selected':'')+'>'+esc(x)+'</option>').join('');
+}
+
 function tree(){const q=$('#search').value.toLowerCase();$('#chapterTree').innerHTML=chapters.map((c,ci)=>{const rows=scenes.map((s,i)=>({s,i})).filter(x=>x.s.c===ci&&(x.s.name+' '+x.s.lines.map(l=>l.sp+' '+l.t).join(' ')).toLowerCase().includes(q)).map(x=>'<button class="scene '+(x.i===selectedScene?'active':'')+'" data-scene="'+x.i+'"><small>'+x.s.lines.length+' 句對白 · '+esc(x.s.place)+'</small><b>'+esc(x.s.name||x.s.lines[0]?.t)+'</b></button>').join('');return '<section class="chapter-group '+(openChapter===ci?'open':'')+'"><button class="chapter-button" data-chapter="'+ci+'"><span>'+esc(c.no||('CHAPTER '+(ci+1)))+'</span><b>'+esc(c.name)+'</b><i>⌄</i></button><div class="chapter-scenes">'+(rows||'<p>尚未有場景</p>')+'</div></section>'}).join('');document.querySelectorAll('[data-chapter]').forEach(e=>e.onclick=()=>toggleChapter(+e.dataset.chapter));document.querySelectorAll('[data-scene]').forEach(e=>e.onclick=()=>selectScene(+e.dataset.scene));setStatus('內容已載入')}
 function hideForms(){['#settingsForm','#displayForm','#chapterForm','#sceneForm','#assetForm','#characterForm'].forEach(x=>$(x).hidden=true);$('#empty').hidden=true}
 function toggleChapter(ci){selectedScene=-1;if(openChapter===ci){openChapter=-1;mode='none';hideForms();$('#empty').hidden=false}else{openChapter=ci;showChapterForm()}tree()}
@@ -31,17 +45,74 @@ const choiceActions=[['goto','前往指定場景'],['money','增加／扣除金�
 function normalizeChoice(c){if(c.action)return c;if(c.target)return{label:c.label,action:'goto',value:c.target};if(c.sprite)return{label:c.label,action:'sprite',value:c.sprite};if(c.effects){const [k,v]=Object.entries(parsePairs(c.effects))[0]||['score',0];return{label:c.label,action:k,value:v}}return{label:c.label||'新選項',action:'next',value:''}}
 function parsePairs(text){return Object.fromEntries(String(text||'').split(',').map(x=>x.split(':')).filter(x=>x.length>1).map(([k,v])=>[k.trim(),v.trim()]))}
 function choiceRows(l){l.choices=(l.choices||[]).map(normalizeChoice);return '<div class="choice-editor"><div class="choice-heading"><b>多項選擇</b><button type="button" data-add-choice>＋ 新增選項</button></div>'+l.choices.map((c,ci)=>'<div class="choice-row" data-choice="'+ci+'"><input data-choice-field="label" value="'+esc(c.label)+'" placeholder="按鈕文字"><select data-choice-field="action">'+choiceActions.map(([v,n])=>'<option value="'+v+'" '+(c.action===v?'selected':'')+'>'+n+'</option>').join('')+'</select><input data-choice-field="value" value="'+esc(c.value)+'" placeholder="場景 ID／數值／URL／立繪代號"><button type="button" data-remove-choice>×</button></div>').join('')+'<p class="choice-empty" '+(l.choices.length?'hidden':'')+'>沒有選項時，玩家可按右下角繼續。</p></div>'}
-function dialogueHtml(s){return s.lines.map((l,i)=>'<article class="dialogue-card '+(i===currentLine?'active':'')+'" data-line="'+i+'"><div class="dialogue-number">對白 '+(i+1)+'</div><div class="line-grid"><label>人物名稱<input data-field="sp" value="'+esc(l.sp)+'"></label><label>英文名稱<input data-field="en" value="'+esc(l.en)+'"></label><label>角色立繪／表情<select data-field="sprite">'+spriteOptions(l.sprite)+'</select></label><label>位置<select data-field="side"><option value="">自動</option><option value="left" '+(l.side==='left'?'selected':'')+'>左</option><option value="right" '+(l.side==='right'?'selected':'')+'>右</option></select></label></div><label>對白／旁白<textarea data-field="t" rows="4">'+esc(l.t)+'</textarea></label>'+choiceRows(l)+'<div class="line-actions"><button type="button" data-action="up">↑</button><button type="button" data-action="down">↓</button><button type="button" data-action="duplicate">複製</button><button type="button" data-action="delete" class="danger">刪除</button></div></article>').join('')}
+
+function dialogueHtml(s){
+  return s.lines.map((l,i)=>{
+    const nameList=characters.map(c=>c.name).filter(Boolean);
+    return `<article class="dialogue-card ${i===currentLine?'active':''}" data-line="${i}">
+      <div class="dialogue-number">對白 ${i+1}</div>
+      <div class="line-grid">
+        <label>人物名稱
+          <input data-field="sp" value="${esc(l.sp)}" list="charNameList" autocomplete="off">
+        </label>
+        <label>英文名稱<input data-field="en" value="${esc(l.en)}"></label>
+        <label>角色立繪／表情<select data-field="sprite">${spriteOptions(l.sprite,l.sp)}</select></label>
+        <label>位置
+          <select data-field="side">
+            <option value="">自動</option>
+            <option value="left" ${l.side==='left'?'selected':''}>左</option>
+            <option value="center" ${l.side==='center'?'selected':''}>中</option>
+            <option value="right" ${l.side==='right'?'selected':''}>右</option>
+          </select>
+        </label>
+      </div>
+      <label>對白／旁白<textarea data-field="t" rows="4">${esc(l.t)}</textarea></label>
+      ${choiceRows(l)}
+      <div class="line-actions">
+        <button type="button" data-action="up">↑</button>
+        <button type="button" data-action="down">↓</button>
+        <button type="button" data-action="duplicate">複製</button>
+        <button type="button" data-action="delete" class="danger">刪除</button>
+      </div>
+    </article>`;
+  }).join('')+'<datalist id="charNameList">'+characters.map(c=>`<option value="${esc(c.name)}">`).join('')+'</datalist>';
+}
+
 function toggleStreetFields(){$('#streetFields').hidden=$('#backgroundType').value!=='streetview';$('#imageBackgroundField').hidden=$('#backgroundType').value==='streetview'}
 function selectScene(i){selectedScene=i;openChapter=scenes[i].c;mode='scene';currentLine=0;hideForms();$('#sceneForm').hidden=false;const s=scenes[i];refreshSelects();$('#sceneId').value=s.id||'';$('#sceneChapter').value=s.c;$('#sceneName').value=s.name||'';$('#backgroundType').value=s.backgroundType||'image';$('#bg').value=s.bg||'';$('#place').value=s.place||'';$('#streetUrl').value=s.street?.url||'';$('#streetLat').value=s.street?.lat||'';$('#streetLng').value=s.street?.lng||'';$('#streetHeading').value=s.street?.heading||'';$('#streetPitch').value=s.street?.pitch||'';$('#streetZoom').value=s.street?.zoom||'';$('#iframeUrl').value=s.iframeUrl||'';$('#requirements').value=s.requirements||'';$('#effects').value=s.effects||'';$('#sceneMusic').value=s.music||'';$('#chapterStart').checked=!!s.start;toggleStreetFields();$('#chapterEyebrow').textContent=chapters[s.c]?.no||'';$('#sceneHeading').textContent=(chapters[s.c]?.name||'')+' · '+(s.name||'場景');renderDialogue();visual();tree()}
-function renderDialogue(){const s=scenes[selectedScene];$('#dialogueList').innerHTML=dialogueHtml(s);document.querySelectorAll('.dialogue-card').forEach(card=>{const li=+card.dataset.line,l=s.lines[li];card.onclick=()=>{currentLine=li;document.querySelectorAll('.dialogue-card').forEach(x=>x.classList.remove('active'));card.classList.add('active');visual()};card.querySelectorAll('[data-field]').forEach(el=>el.oninput=()=>{l[el.dataset.field]=el.value;mark();tree();visual()});card.querySelectorAll('[data-choice]').forEach(row=>row.querySelectorAll('[data-choice-field]').forEach(el=>el.oninput=e=>{e.stopPropagation();l.choices[+row.dataset.choice][el.dataset.choiceField]=el.value;mark('選項已修改')}));card.querySelector('[data-add-choice]').onclick=e=>{e.stopPropagation();l.choices.push({label:'新選項',action:'next',value:''});mark('已新增選項');renderDialogue()};card.querySelectorAll('[data-remove-choice]').forEach((b,ci)=>b.onclick=e=>{e.stopPropagation();l.choices.splice(ci,1);mark('選項已刪除');renderDialogue()});card.querySelectorAll('[data-action]').forEach(btn=>btn.onclick=e=>{e.stopPropagation();lineAction(li,btn.dataset.action)})})}
+
+function renderDialogue(){
+  const s=scenes[selectedScene];
+  $('#dialogueList').innerHTML=dialogueHtml(s);
+  document.querySelectorAll('.dialogue-card').forEach(card=>{
+    const li=+card.dataset.line,l=s.lines[li];
+    card.onclick=()=>{currentLine=li;document.querySelectorAll('.dialogue-card').forEach(x=>x.classList.remove('active'));card.classList.add('active');visual()};
+    card.querySelectorAll('[data-field]').forEach(el=>{
+      el.oninput=()=>{
+        l[el.dataset.field]=el.value;
+        mark();
+        if(el.dataset.field==='sp'){
+          // refresh sprite options for this line
+          const sel=card.querySelector('[data-field="sprite"]');
+          if(sel)sel.innerHTML=spriteOptions(l.sprite,l.sp);
+        }
+        tree();visual();
+      };
+    });
+    card.querySelectorAll('[data-choice]').forEach(row=>row.querySelectorAll('[data-choice-field]').forEach(el=>el.oninput=e=>{e.stopPropagation();l.choices[+row.dataset.choice][el.dataset.choiceField]=el.value;mark('選項已修改')}));
+    card.querySelector('[data-add-choice]').onclick=e=>{e.stopPropagation();l.choices.push({label:'新選項',action:'next',value:''});mark('已新增選項');renderDialogue()};
+    card.querySelectorAll('[data-remove-choice]').forEach((b,ci)=>b.onclick=e=>{e.stopPropagation();l.choices.splice(ci,1);mark('選項已刪除');renderDialogue()});
+    card.querySelectorAll('[data-action]').forEach(btn=>btn.onclick=e=>{e.stopPropagation();lineAction(li,btn.dataset.action)});
+  });
+}
+
 function lineAction(i,action){const lines=scenes[selectedScene].lines;if(action==='delete'){if(lines.length===1)return alert('每個場景最少要有一句對白');lines.splice(i,1)}else if(action==='duplicate')lines.splice(i+1,0,structuredClone(lines[i]));else if(action==='up'&&i>0)[lines[i-1],lines[i]]=[lines[i],lines[i-1]];else if(action==='down'&&i<lines.length-1)[lines[i+1],lines[i]]=[lines[i],lines[i+1]];currentLine=Math.max(0,Math.min(lines.length-1,action==='down'?i+1:action==='up'?i-1:i));mark();renderDialogue();tree();visual()}
 function visual(){if(selectedScene<0)return;const s=scenes[selectedScene],l=s.lines[currentLine]||s.lines[0];$('#bgPreview').src=assetUrl('bg',s.bg);$('#spritePreview').src=assetUrl('sprite',l.sprite)}
 function showSettings(){openChapter=-1;selectedScene=-1;mode='settings';hideForms();$('#settingsForm').hidden=false;$('#displayForm').hidden=false;Object.entries(sf).forEach(([k,e])=>e.value=settings[k]||'');['dialogueFontSize','dialogueBoxColor','dialogueBoxOpacity','dialogueBoxBlur','narrationBoxColor','narrationBoxOpacity','narrationBoxBlur'].forEach(k=>$('#'+k).value=settings[k]);syncDisplay(false);settingsVisual();tree()}
 function settingsVisual(){$('#coverPreview').src=resolveUrl(settings.coverImage);$('#logoPreview').src=resolveUrl(settings.logoImage)}
 const slug=x=>String(x||'folder').trim().toLowerCase().replace(/[^a-z0-9\u4e00-\u9fff-]+/g,'-').replace(/^-+|-+$/g,'')||'folder';
 function folder(){return library.folders.find(f=>f.id===selectedFolder)}
-function renderLibrary(){if(!folder())selectedFolder=library.folders[0]?.id||'characters';$('#folderSelect').value=selectedFolder;const f=folder();$('#assetGrid').innerHTML=(f?.files||[]).map((a,i)=>'<article class="asset-card">'+(a.type==='video'?'<video src="'+esc(a.url)+'" controls preload="metadata"></video>':a.type==='audio'?'<audio src="'+esc(a.url)+'" controls></audio>':'<img src="'+esc(a.url)+'" alt="">')+'<div><b>'+esc(a.name)+'</b><code>'+esc(a.url)+'</code><div><button type="button" data-copy="'+i+'">複製 URL</button><button type="button" data-remove="'+i+'" class="danger">移除記錄</button></div></div></article>').join('')||'<p class="empty-assets">此分類尚未登記素材。</p>';document.querySelectorAll('[data-copy]').forEach(b=>b.onclick=()=>navigator.clipboard.writeText(f.files[+b.dataset.copy].url).then(()=>setStatus('URL 已複製')));document.querySelectorAll('[data-remove]').forEach(b=>b.onclick=()=>{if(confirm('確定移除此 URL 記錄？')){f.files.splice(+b.dataset.remove,1);mark('素材記錄已移除');renderLibrary()}})}
+function renderLibrary(){if(!folder())selectedFolder=library.folders[0]?.id||'characters';$('#folderSelect').value=selectedFolder;const f=folder();$('#assetGrid').innerHTML=(f?.files||[]).map((a,i)=>'<article class="asset-card">'+(a.type==='video'?'<video src="'+esc(a.url)+'" controls preload="metadata"></video>':a.type==='audio'?'<audio src="'+esc(a.url)+'" controls></audio>':'<img src="'+esc(a.url)+'" alt="" loading="lazy">')+'<div><b>'+esc(a.name)+'</b><code>'+esc(a.url)+'</code><div><button type="button" data-copy="'+i+'">複製 URL</button><button type="button" data-remove="'+i+'" class="danger">移除記錄</button></div></div></article>').join('')||'<p class="empty-assets">此分類尚未登記素材。</p>';document.querySelectorAll('[data-copy]').forEach(b=>b.onclick=()=>navigator.clipboard.writeText(f.files[+b.dataset.copy].url).then(()=>setStatus('URL 已複製')));document.querySelectorAll('[data-remove]').forEach(b=>b.onclick=()=>{if(confirm('確定移除此 URL 記錄？')){f.files.splice(+b.dataset.remove,1);mark('素材記錄已移除');renderLibrary()}})}
 function showLibrary(){openChapter=-1;selectedScene=-1;mode='assets';hideForms();$('#assetForm').hidden=false;renderLibrary();tree()}
 function showCharacters(){openChapter=-1;selectedScene=-1;mode='characters';hideForms();$('#characterForm').hidden=false;renderCharacters();tree()}
 
@@ -54,8 +125,11 @@ function renderCharacters(){
     return;
   }
   $('#characterList').innerHTML=characters.map((c,i)=>{
+    const isOpen=expandedChar===i;
+    const firstMoodUrl=Object.values(c.moods||{})[0]||'';
+    const moodCount=Object.keys(c.moods||{}).length;
     const moods=moodsToArray(c.moods);
-    const moodHtml=moods.map((m,mi)=>`
+    const moodHtml=isOpen?moods.map((m,mi)=>`
       <div class="mood-row" data-mood="${mi}">
         <div class="mood-preview">${m.url?`<img src="${esc(m.url)}" alt="" onerror="this.style.display='none'">`:'<span class="no-preview">無圖</span>'}</div>
         <div class="mood-fields">
@@ -67,62 +141,61 @@ function renderCharacters(){
           <button type="button" data-mood-down title="下移">↓</button>
           <button type="button" data-mood-del class="danger" title="刪除">×</button>
         </div>
-      </div>`).join('')||'<p class="mood-empty">尚未加入任何表情</p>';
+      </div>`).join('')||'<p class="mood-empty">尚未加入任何表情</p>':'';
+
     return `
-      <article class="character-card" data-character="${i}">
-        <div class="character-head">
-          <b>${esc(c.name)||'未命名角色'}</b>
-          <div class="char-actions">
-            <button type="button" data-char-up title="角色上移">↑</button>
-            <button type="button" data-char-down title="角色下移">↓</button>
-            <button type="button" data-delete-character="${i}" class="danger">刪除角色</button>
+      <article class="character-card ${isOpen?'open':''}" data-character="${i}">
+        <div class="character-summary" data-toggle-char="${i}">
+          <div class="char-avatar">${firstMoodUrl?`<img src="${esc(firstMoodUrl)}" alt="">`:'<span>${(c.name||'?')[0]}</span>'}</div>
+          <div class="char-info">
+            <b>${esc(c.name)||'未命名角色'}</b>
+            <small>${esc(c.key)||'無代號'} · ${moodCount} 個表情</small>
           </div>
+          <div class="char-actions" onclick="event.stopPropagation()">
+            <button type="button" data-char-up title="上移">↑</button>
+            <button type="button" data-char-down title="下移">↓</button>
+            <button type="button" data-delete-character="${i}" class="danger">刪</button>
+          </div>
+          <span class="char-chevron">${isOpen?'▲':'▼'}</span>
         </div>
-        <div class="grid">
-          <label>角色名稱<input data-char-field="name" value="${esc(c.name)}"></label>
-          <label>代號（英文／系統用）<input data-char-field="key" value="${esc(c.key)}"></label>
-        </div>
-        <div class="moods-section">
-          <div class="moods-head"><b>表情列表</b><button type="button" data-add-mood>＋ 新增表情</button></div>
-          <div class="mood-list">${moodHtml}</div>
-        </div>
+        ${isOpen?`
+        <div class="character-detail">
+          <div class="grid">
+            <label>角色名稱<input data-char-field="name" value="${esc(c.name)}"></label>
+            <label>代號（英文／系統用）<input data-char-field="key" value="${esc(c.key)}"></label>
+          </div>
+          <div class="moods-section">
+            <div class="moods-head"><b>表情列表</b><button type="button" data-add-mood>＋ 新增表情</button></div>
+            <div class="mood-list">${moodHtml}</div>
+          </div>
+        </div>`:''}
       </article>`;
   }).join('');
 
-  // Character level events
+  // Toggle expand
+  document.querySelectorAll('[data-toggle-char]').forEach(el=>{
+    el.onclick=()=>{
+      const idx=+el.dataset.toggleChar;
+      expandedChar=expandedChar===idx?-1:idx;
+      renderCharacters();
+    };
+  });
+
   document.querySelectorAll('[data-character]').forEach(card=>{
     const ci=+card.dataset.character;
     const c=characters[ci];
+    if(expandedChar!==ci)return;
 
     card.querySelectorAll('[data-char-field]').forEach(el=>el.oninput=()=>{
       c[el.dataset.charField]=el.value;
       mark('角色資料已修改');
       refreshSelects();
-      // update header name live
-      const head=card.querySelector('.character-head b');
-      if(head&&el.dataset.charField==='name')head.textContent=el.value||'未命名角色';
     });
 
-    card.querySelector('[data-char-up]')?.addEventListener('click',()=>{
-      if(ci<=0)return;
-      [characters[ci-1],characters[ci]]=[characters[ci],characters[ci-1]];
-      mark('角色次序已調整');
-      renderCharacters();refreshSelects();
-    });
-    card.querySelector('[data-char-down]')?.addEventListener('click',()=>{
-      if(ci>=characters.length-1)return;
-      [characters[ci+1],characters[ci]]=[characters[ci],characters[ci+1]];
-      mark('角色次序已調整');
-      renderCharacters();refreshSelects();
-    });
-    card.querySelector('[data-delete-character]')?.addEventListener('click',()=>{
-      if(!confirm('確定刪除呢個角色同所有表情？'))return;
-      characters.splice(ci,1);
-      mark('角色已刪除');
-      renderCharacters();refreshSelects();
-    });
+    card.querySelector('[data-char-up]')?.addEventListener('click',e=>{e.stopPropagation();if(ci<=0)return;[characters[ci-1],characters[ci]]=[characters[ci],characters[ci-1]];if(expandedChar===ci)expandedChar=ci-1;mark('角色次序已調整');renderCharacters();refreshSelects()});
+    card.querySelector('[data-char-down]')?.addEventListener('click',e=>{e.stopPropagation();if(ci>=characters.length-1)return;[characters[ci+1],characters[ci]]=[characters[ci],characters[ci+1]];if(expandedChar===ci)expandedChar=ci+1;mark('角色次序已調整');renderCharacters();refreshSelects()});
+    card.querySelector('[data-delete-character]')?.addEventListener('click',e=>{e.stopPropagation();if(!confirm('確定刪除呢個角色同所有表情？'))return;characters.splice(ci,1);expandedChar=-1;mark('角色已刪除');renderCharacters();refreshSelects()});
 
-    // Mood events
     card.querySelector('[data-add-mood]')?.addEventListener('click',()=>{
       const arr=moodsToArray(c.moods);
       arr.push({name:'新表情',url:''});
@@ -134,40 +207,20 @@ function renderCharacters(){
     card.querySelectorAll('.mood-row').forEach(row=>{
       const mi=+row.dataset.mood;
       const arr=moodsToArray(c.moods);
-
       row.querySelectorAll('[data-mood-field]').forEach(el=>el.oninput=()=>{
         arr[mi][el.dataset.moodField]=el.value;
         c.moods=arrayToMoods(arr);
         mark('表情已修改');
         refreshSelects();
-        // live preview update
         if(el.dataset.moodField==='url'){
           const prev=row.querySelector('.mood-preview');
           if(el.value)prev.innerHTML=`<img src="${esc(el.value)}" alt="" onerror="this.parentElement.innerHTML='<span class=\\'no-preview\\'>無圖</span>'">`;
           else prev.innerHTML='<span class="no-preview">無圖</span>';
         }
       });
-
-      row.querySelector('[data-mood-up]')?.addEventListener('click',()=>{
-        if(mi<=0)return;
-        [arr[mi-1],arr[mi]]=[arr[mi],arr[mi-1]];
-        c.moods=arrayToMoods(arr);
-        mark('表情次序已調整');
-        renderCharacters();refreshSelects();
-      });
-      row.querySelector('[data-mood-down]')?.addEventListener('click',()=>{
-        if(mi>=arr.length-1)return;
-        [arr[mi+1],arr[mi]]=[arr[mi],arr[mi+1]];
-        c.moods=arrayToMoods(arr);
-        mark('表情次序已調整');
-        renderCharacters();refreshSelects();
-      });
-      row.querySelector('[data-mood-del]')?.addEventListener('click',()=>{
-        arr.splice(mi,1);
-        c.moods=arrayToMoods(arr);
-        mark('表情已刪除');
-        renderCharacters();refreshSelects();
-      });
+      row.querySelector('[data-mood-up]')?.addEventListener('click',()=>{if(mi<=0)return;[arr[mi-1],arr[mi]]=[arr[mi],arr[mi-1]];c.moods=arrayToMoods(arr);mark('表情次序已調整');renderCharacters();refreshSelects()});
+      row.querySelector('[data-mood-down]')?.addEventListener('click',()=>{if(mi>=arr.length-1)return;[arr[mi+1],arr[mi]]=[arr[mi],arr[mi+1]];c.moods=arrayToMoods(arr);mark('表情次序已調整');renderCharacters();refreshSelects()});
+      row.querySelector('[data-mood-del]')?.addEventListener('click',()=>{arr.splice(mi,1);c.moods=arrayToMoods(arr);mark('表情已刪除');renderCharacters();refreshSelects()});
     });
   });
 }
@@ -185,7 +238,7 @@ async function loadProjects(){const snap=await getDocs(collection(db,'projects')
 function renderProjects(){$('#projectGrid').innerHTML=projects.map(p=>'<article class="project-card"><img src="'+esc(p.cover||'../assets/official/cover-island.jpg')+'" alt=""><div><small>'+esc(p.id)+'</small><b>'+esc(p.name||'未命名遊戲')+'</b><span>'+((p.legacy)?'現有正式專案':'獨立遊戲專案')+'</span><div class="project-actions"><button type="button" class="edit-project" data-project="'+esc(p.id)+'">進入後台</button><a href="../'+(p.id==='island-journey'?'':'?game='+encodeURIComponent(p.id))+'" target="_blank">開啟遊戲 ↗</a></div></div></article>').join('');document.querySelectorAll('[data-project]').forEach(b=>b.onclick=()=>openProject(b.dataset.project))}
 async function openProject(id){currentProject=id;$('#projectHub').hidden=true;$('#cms').hidden=false;$('#userEmail').textContent=auth.currentUser.email;await load()}
 function showProjectHub(){$('#cms').hidden=true;$('#projectHub').hidden=false;$('#hubEmail').textContent=auth.currentUser?.email||'';loadProjects().catch(e=>$('#projectGrid').innerHTML='<p>載入專案失敗：'+esc(e.message)+'</p>')}
-async function load(){const snap=await getDoc(contentDoc('draft')),data=snap.exists()?JSON.parse(snap.data().payload):(currentProject==='island-journey'?{story:STORY,chapters:CHAPTERS}:currentProject==='media-demo'?structuredClone(window.MEDIA_DEMO):{story:[],chapters:[],settings:{projectName:projects.find(p=>p.id===currentProject)?.name||'新遊戲'}});chapters=structuredClone(data.chapters||[]).map((c,i)=>({...c,id:c.id||'chapter-'+(i+1),no:c.no||('CHAPTER '+(i+1)),intro:c.intro||c.video||[],outro:c.outro||[]}));scenes=normalizeStory(data.story||[]).map((s,i)=>({...s,id:s.id||'scene-'+(i+1),backgroundType:s.backgroundType||'image',lines:s.lines.map(l=>({...l,choices:l.choices||[]}))}));settings={...DEFAULT_SETTINGS,...data.settings};assets=data.assets||{bg:{},sprite:{}};assets.bg=assets.bg||{};assets.sprite=assets.sprite||{};characters=data.characters||[];const oldFiles=(data.library?.folders||[]).flatMap(f=>f.files||[]);library=data.library?.folders?.some(f=>['characters','objects','backgrounds'].includes(f.id))?data.library:{folders:[{id:'characters',name:'人物',files:oldFiles.filter(f=>/character|sprite|人物/i.test(f.type||f.name))},{id:'objects',name:'物件',files:[]},{id:'backgrounds',name:'背景',files:oldFiles.filter(f=>!/character|sprite|人物/i.test(f.type||f.name))}]};selectedFolder='characters';$('#projectTitle').textContent=settings.projectName;refreshSelects();dirty=false;openChapter=-1;mode='none';tree();hideForms();$('#empty').hidden=false}
+async function load(){const snap=await getDoc(contentDoc('draft')),data=snap.exists()?JSON.parse(snap.data().payload):(currentProject==='island-journey'?{story:STORY,chapters:CHAPTERS}:currentProject==='media-demo'?structuredClone(window.MEDIA_DEMO):{story:[],chapters:[],settings:{projectName:projects.find(p=>p.id===currentProject)?.name||'新遊戲'}});chapters=structuredClone(data.chapters||[]).map((c,i)=>({...c,id:c.id||'chapter-'+(i+1),no:c.no||('CHAPTER '+(i+1)),intro:c.intro||c.video||[],outro:c.outro||[]}));scenes=normalizeStory(data.story||[]).map((s,i)=>({...s,id:s.id||'scene-'+(i+1),backgroundType:s.backgroundType||'image',lines:s.lines.map(l=>({...l,choices:l.choices||[]}))}));settings={...DEFAULT_SETTINGS,...data.settings};assets=data.assets||{bg:{},sprite:{}};assets.bg=assets.bg||{};assets.sprite=assets.sprite||{};characters=data.characters||[];const oldFiles=(data.library?.folders||[]).flatMap(f=>f.files||[]);library=data.library?.folders?.some(f=>['characters','objects','backgrounds'].includes(f.id))?data.library:{folders:[{id:'characters',name:'人物',files:oldFiles.filter(f=>/character|sprite|人物/i.test(f.type||f.name))},{id:'objects',name:'物件',files:[]},{id:'backgrounds',name:'背景',files:oldFiles.filter(f=>!/character|sprite|人物/i.test(f.type||f.name))}]};selectedFolder='characters';$('#projectTitle').textContent=settings.projectName;refreshSelects();dirty=false;openChapter=-1;mode='none';expandedChar=-1;tree();hideForms();$('#empty').hidden=false}
 async function save(kind='draft'){if(mode==='settings')syncSettings();if(mode==='chapter')syncChapter();if(mode==='scene')syncScene();setStatus('正在儲存…');await setDoc(contentDoc(kind),{payload:JSON.stringify(payload()),updatedAt:serverTimestamp(),updatedBy:auth.currentUser.email});if(currentProject!=='island-journey')await setDoc(doc(db,'projects',currentProject),{name:settings.projectName,cover:settings.coverImage,owner:auth.currentUser.email,updatedAt:serverTimestamp()},{merge:true});dirty=false;setStatus(kind==='published'?'已正式發布':'草稿已儲存')}
 
 function downloadJson(data,filename){const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=filename;a.click();URL.revokeObjectURL(a.href)}
@@ -197,7 +250,7 @@ function exportStory(){downloadJson({type:'story',chapters,story:scenes},(settin
 
 $('#loginBtn').onclick=async()=>{try{await signInWithPopup(auth,new GoogleAuthProvider())}catch(e){$('#loginMsg').textContent=e.message}};$('#logoutBtn').onclick=()=>signOut(auth);$('#titleNav').onclick=showSettings;$('#characterNav').onclick=showCharacters;$('#assetNav').onclick=showLibrary;$('#search').oninput=tree;Object.values(sf).forEach(e=>e.oninput=syncSettings);$('#dialogueFontSize').oninput=()=>syncDisplay();$('#dialogueBoxOpacity').oninput=()=>syncDisplay();['chapterId','chapterNo','chapterName','chapterMusic','chapterIntro','chapterOutro'].forEach(id=>$('#'+id).oninput=syncChapter);['sceneId','sceneName','bg','place','streetUrl','streetLat','streetLng','streetHeading','streetPitch','streetZoom','iframeUrl','requirements','effects','sceneMusic'].forEach(id=>$('#'+id).oninput=syncScene);['sceneChapter','backgroundType','chapterStart'].forEach(id=>$('#'+id).onchange=syncScene);$('#analyseStreetBtn').onclick=analyseStreetUrl;
 $('#folderSelect').onchange=e=>{selectedFolder=e.target.value;renderLibrary()};$('#addLibraryAssetBtn').onclick=()=>{const f=folder(),url=$('#libraryFileName').value.trim(),name=$('#libraryAssetName').value.trim()||url;if(!/^https?:\/\//i.test(url))return alert('請輸入完整 http / https URL');f.files.push({name,type:$('#libraryAssetType').value,url});$('#libraryAssetName').value='';$('#libraryFileName').value='';mark('素材已加入資料庫');renderLibrary()};
-$('#addCharacterBtn').onclick=()=>{const name=$('#characterName').value.trim();if(!name)return alert('請輸入角色名稱');characters.push({name,key:$('#characterKey').value.trim()||uid('character'),moods:{預設:'',喜:'',怒:'',哀:'',樂:''}});$('#characterName').value='';$('#characterKey').value='';mark('角色已新增');renderCharacters();refreshSelects()};
+$('#addCharacterBtn').onclick=()=>{const name=$('#characterName').value.trim();if(!name)return alert('請輸入角色名稱');characters.push({name,key:$('#characterKey').value.trim()||uid('character'),moods:{預設:'',喜:'',怒:'',哀:'',樂:''}});$('#characterName').value='';$('#characterKey').value='';expandedChar=characters.length-1;mark('角色已新增');renderCharacters();refreshSelects()};
 $('#addChapterBtn').onclick=()=>{chapters.push({id:uid('chapter'),no:'CHAPTER '+(chapters.length+1),name:'新篇章',intro:[],outro:[],music:''});openChapter=chapters.length-1;selectedScene=-1;mark('已新增篇章');refreshSelects();showChapterForm();tree()};$('#addSceneBtn').onclick=()=>{let insert=scenes.reduce((last,s,i)=>s.c===openChapter?i+1:last,0);scenes.splice(insert,0,sceneDefault(openChapter));selectedScene=insert;mark('已新增場景');selectScene(selectedScene)};$('#addLineBtn').onclick=()=>{scenes[selectedScene].lines.push(lineDefault());currentLine=scenes[selectedScene].lines.length-1;mark('已增加對白');renderDialogue();tree();visual()};
 $('#deleteChapterBtn').onclick=()=>{if(!confirm('會同時刪除此篇章內所有場景，確定嗎？'))return;const ci=openChapter;chapters.splice(ci,1);scenes=scenes.filter(s=>s.c!==ci).map(s=>({...s,c:s.c>ci?s.c-1:s.c}));openChapter=-1;selectedScene=-1;mark('篇章已刪除');refreshSelects();hideForms();$('#empty').hidden=false;tree()};function moveChapter(dir){const to=openChapter+dir;if(to<0||to>=chapters.length)return;[chapters[openChapter],chapters[to]]=[chapters[to],chapters[openChapter]];scenes.forEach(s=>{if(s.c===openChapter)s.c=to;else if(s.c===to)s.c=openChapter});openChapter=to;mark('篇章次序已修改');refreshSelects();showChapterForm();tree()}$('#chapterUpBtn').onclick=()=>moveChapter(-1);$('#chapterDownBtn').onclick=()=>moveChapter(1);
 function moveScene(dir){const to=selectedScene+dir;if(to<0||to>=scenes.length||scenes[to].c!==scenes[selectedScene].c)return;[scenes[selectedScene],scenes[to]]=[scenes[to],scenes[selectedScene]];selectedScene=to;mark();selectScene(to)}$('#sceneUpBtn').onclick=()=>moveScene(-1);$('#sceneDownBtn').onclick=()=>moveScene(1);$('#duplicateSceneBtn').onclick=()=>{scenes.splice(selectedScene+1,0,structuredClone(scenes[selectedScene]));selectedScene++;mark();selectScene(selectedScene)};$('#deleteSceneBtn').onclick=()=>confirm('刪除整個場景及所有對白？')&&(scenes.splice(selectedScene,1),selectedScene=-1,mark(),showChapterForm(),tree());
