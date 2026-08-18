@@ -28,5 +28,5 @@
    if(window.GAME_SETTINGS.logoImage)window.GAME_SETTINGS.logoImage=resolve(window.GAME_SETTINGS.logoImage);
   }
  }catch(e){console.warn('Using bundled story',e)}
- finally{const script=document.createElement('script');script.src='game-core.js?v=21';script.onload=function(){var p=document.createElement('script');p.src='stats-overlay.js?v=1';document.body.appendChild(p)};document.body.appendChild(script)}
+ finally{const script=document.createElement('script');script.src='game-core-loader.js?v=1';document.body.appendChild(script)}
 })();
