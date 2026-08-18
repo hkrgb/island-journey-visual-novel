@@ -17,9 +17,23 @@ fetch(SRC+'?t='+Date.now()).then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);
   if(!code.includes('nameFontSize=+')){
     code=code.replace(
       "settings.dialogueFontSize=+$('#dialogueFontSize').value;",
-      "settings.nameFontSize=+$('#nameFontSize').value||16;settings.dialogueFontSize=+$('#dialogueFontSize').value;"
+      "settings.nameFontSize=+(($('#nameFontSize')||{value:16}).value)||16;settings.dialogueFontSize=+$('#dialogueFontSize').value;"
     );
   }
   code=code.replace("dialogueFontSize:22,","dialogueFontSize:22,nameFontSize:16,");
+  code=code.replace(
+    "].forEach(id=>$('#'+id).oninput=()=>syncDisplay())",
+    "].forEach(id=>{const el=$('#'+id);if(el)el.oninput=()=>syncDisplay()})"
+  );
+  code=code.replace(
+    "].forEach(k=>$('#'+k).value=settings[k])",
+    "].forEach(k=>{const el=$('#'+k);if(el)el.value=(settings[k]!=null?settings[k]:'')})"
+  );
+  if(!code.includes("$('#nameFontSize').oninput")){
+    code=code.replace(
+      "$('#dialogueFontSize').oninput=()=>syncDisplay();",
+      "const _nfs=$('#nameFontSize');if(_nfs)_nfs.oninput=()=>syncDisplay();$('#dialogueFontSize').oninput=()=>syncDisplay();"
+    );
+  }
   return import(URL.createObjectURL(new Blob([code],{type:'text/javascript'})));
 }).catch(e=>{console.error(e);const m=document.getElementById('loginMsg');if(m)m.textContent='載入後台失敗：'+e.message});
