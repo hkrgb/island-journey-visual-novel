@@ -1,4 +1,10 @@
 (async()=>{
+ // Mobile orientation / fullscreen prompts (load immediately)
+ (function(){
+   var g=document.createElement('script');
+   g.src='mobile-guard.js?v=1';
+   document.head.appendChild(g);
+ })();
  try{
   let p=null;
   const gameId=new URLSearchParams(location.search).get('game')||'island-journey';window.GAME_ID=gameId;
