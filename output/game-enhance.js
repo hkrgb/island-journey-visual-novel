@@ -1,4 +1,14 @@
 (function(){
+  // Create stubs immediately so game-core onclick assignment never throws
+  ['auto','backlog'].forEach(function(id){
+    if(!document.getElementById(id)){
+      var b=document.createElement('button');
+      b.id=id;b.type='button';b.style.display='none';b.setAttribute('aria-hidden','true');
+      (document.body||document.documentElement).appendChild(b);
+    }
+  });
+})();
+(function(){
   var lastBg = '';
   function resolveBg(s){
     var g = window.GAME_SETTINGS || {};
@@ -138,19 +148,7 @@
     window.render.__fontHooked = true;
   }
 
-  function safeMissingHandlers(){
-    ['auto','backlog'].forEach(function(id){
-      if(!document.getElementById(id)){
-        var b = document.createElement('button');
-        b.id = id;
-        b.style.display = 'none';
-        document.body.appendChild(b);
-      }
-    });
-  }
-
   function boot(){
-    safeMissingHandlers();
     patchShowWorld();
     hookRender();
     styleNameplate();

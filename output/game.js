@@ -43,7 +43,7 @@
     o.src='stats-overlay.js?v=4';
     document.body.appendChild(o);
     const e=document.createElement('script');
-    e.src='game-enhance.js?v=2';
+    e.src='game-enhance.js?v=3';
     document.body.appendChild(e);
   };
   script.onerror=()=>console.error('game-core.js failed to load');
