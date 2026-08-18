@@ -1,0 +1,13 @@
+{
+  "appId": "com.hkrgb.islandjourney",
+  "appName": "離島旅程",
+  "webDir": "output",
+  "server": {
+    "androidScheme": "https"
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 0
+    }
+  }
+}
