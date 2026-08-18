@@ -1,5 +1,4 @@
 (function(){
-  // --- Sticky background + defaultBg ---
   var lastBg = '';
   function resolveBg(s){
     var g = window.GAME_SETTINGS || {};
@@ -52,50 +51,80 @@
     }
   }
 
-  var FONT_KEY = 'islandJourneyFontSize';
-  function getFontSize(){
-    var n = parseInt(localStorage.getItem(FONT_KEY) || '', 10);
+  var KEY_NAME = 'islandJourneyNameFontSize';
+  var KEY_BODY = 'islandJourneyBodyFontSize';
+
+  function getNameSize(){
+    var n = parseInt(localStorage.getItem(KEY_NAME) || '', 10);
+    if(!n || n < 12 || n > 36){
+      var g = window.GAME_SETTINGS || {};
+      n = parseInt(g.nameFontSize || g.dialogueFontSize || 16, 10) || 16;
+    }
+    return Math.max(12, Math.min(36, n));
+  }
+  function getBodySize(){
+    var n = parseInt(localStorage.getItem(KEY_BODY) || '', 10);
     if(!n || n < 14 || n > 36){
       var g = window.GAME_SETTINGS || {};
       n = parseInt(g.dialogueFontSize || 22, 10) || 22;
     }
     return Math.max(14, Math.min(36, n));
   }
-  function applyFontSize(size){
-    size = Math.max(14, Math.min(36, size|0));
-    localStorage.setItem(FONT_KEY, String(size));
+  function applyFonts(){
+    var nameSz = getNameSize();
+    var bodySz = getBodySize();
     var p = document.querySelector('.textbox > p, #dialogue');
-    if(p) p.style.fontSize = size + 'px';
+    if(p) p.style.fontSize = bodySz + 'px';
     var name = document.querySelector('.nameplate span, #speaker');
-    if(name) name.style.fontSize = Math.max(12, Math.round(size * 0.85)) + 'px';
+    if(name) name.style.fontSize = nameSz + 'px';
     var en = document.querySelector('.nameplate small, #speakerEn');
-    if(en) en.style.fontSize = Math.max(9, Math.round(size * 0.55)) + 'px';
-    var label = document.getElementById('fontSizeLabel');
-    if(label) label.textContent = size + 'px';
-    try{ if(window.UI) UI.dialogueFontSize = size; }catch(e){}
+    if(en) en.style.fontSize = Math.max(9, Math.round(nameSz * 0.65)) + 'px';
+    var nl = document.getElementById('nameFontSizeLabel');
+    if(nl) nl.textContent = nameSz + 'px';
+    var bl = document.getElementById('bodyFontSizeLabel');
+    if(bl) bl.textContent = bodySz + 'px';
+    try{
+      if(window.UI){
+        UI.dialogueFontSize = bodySz;
+        UI.nameFontSize = nameSz;
+      }
+    }catch(e){}
   }
-  function injectFontControls(){
-    var grid = document.querySelector('#game-menu .menu-grid');
-    if(!grid || document.getElementById('fontSizeRow')) return;
-    var row = document.createElement('div');
-    row.id = 'fontSizeRow';
-    row.style.cssText = 'grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;background:#fff;border:1px solid #cbd6db;color:#102d40;';
-    row.innerHTML = '<div><b style="display:block;font-size:13px">文字大小</b><small style="color:#70858f">角色名 + 對白</small></div>'+
-      '<div style="display:flex;align-items:center;gap:8px">'+
-      '<button type="button" id="fontSizeDown" style="width:36px;height:36px;border:1px solid #cbd6db;background:#f4efe5;font-size:18px;cursor:pointer">A−</button>'+
-      '<span id="fontSizeLabel" style="min-width:42px;text-align:center;font-weight:700"></span>'+
-      '<button type="button" id="fontSizeUp" style="width:36px;height:36px;border:1px solid #cbd6db;background:#f4efe5;font-size:18px;cursor:pointer">A+</button>'+
-      '</div>';
-    grid.appendChild(row);
-    document.getElementById('fontSizeDown').onclick = function(e){
-      e.stopPropagation();
-      applyFontSize(getFontSize() - 2);
-    };
-    document.getElementById('fontSizeUp').onclick = function(e){
-      e.stopPropagation();
-      applyFontSize(getFontSize() + 2);
-    };
-    applyFontSize(getFontSize());
+  function setNameSize(sz){
+    sz = Math.max(12, Math.min(36, sz|0));
+    localStorage.setItem(KEY_NAME, String(sz));
+    applyFonts();
+  }
+  function setBodySize(sz){
+    sz = Math.max(14, Math.min(36, sz|0));
+    localStorage.setItem(KEY_BODY, String(sz));
+    applyFonts();
+  }
+
+  function wireMenuControls(){
+    var nd = document.getElementById('nameFontSizeDown');
+    var nu = document.getElementById('nameFontSizeUp');
+    var bd = document.getElementById('bodyFontSizeDown');
+    var bu = document.getElementById('bodyFontSizeUp');
+    if(nd && !nd.__wired){
+      nd.__wired = true;
+      nd.onclick = function(e){ e.stopPropagation(); setNameSize(getNameSize()-1); };
+    }
+    if(nu && !nu.__wired){
+      nu.__wired = true;
+      nu.onclick = function(e){ e.stopPropagation(); setNameSize(getNameSize()+1); };
+    }
+    if(bd && !bd.__wired){
+      bd.__wired = true;
+      bd.onclick = function(e){ e.stopPropagation(); setBodySize(getBodySize()-1); };
+    }
+    if(bu && !bu.__wired){
+      bu.__wired = true;
+      bu.onclick = function(e){ e.stopPropagation(); setBodySize(getBodySize()+1); };
+    }
+    var old = document.getElementById('fontSizeRow');
+    if(old) old.remove();
+    applyFonts();
   }
 
   function hookRender(){
@@ -103,27 +132,36 @@
     var orig = render;
     window.render = function(){
       var r = orig.apply(this, arguments);
-      setTimeout(function(){ applyFontSize(getFontSize()); styleNameplate(); }, 0);
+      setTimeout(function(){ applyFonts(); styleNameplate(); }, 0);
       return r;
     };
     window.render.__fontHooked = true;
   }
 
+  function safeMissingHandlers(){
+    ['auto','backlog'].forEach(function(id){
+      if(!document.getElementById(id)){
+        var b = document.createElement('button');
+        b.id = id;
+        b.style.display = 'none';
+        document.body.appendChild(b);
+      }
+    });
+  }
+
   function boot(){
+    safeMissingHandlers();
     patchShowWorld();
     hookRender();
     styleNameplate();
-    injectFontControls();
-    applyFontSize(getFontSize());
+    wireMenuControls();
+    applyFonts();
   }
   var tries = 0;
   (function wait(){
     tries++;
-    if(typeof showWorld === 'function' || tries > 40){
-      boot();
-    } else {
-      setTimeout(wait, 100);
-    }
+    if(typeof showWorld === 'function' || tries > 40) boot();
+    else setTimeout(wait, 100);
   })();
   document.addEventListener('DOMContentLoaded', function(){ setTimeout(boot, 50); });
 })();
