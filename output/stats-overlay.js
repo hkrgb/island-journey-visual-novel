@@ -1,4 +1,5 @@
 (function(){
+  var applying=false;
   function cfg(){
     var g=window.GAME_SETTINGS||{};
     return {
@@ -12,41 +13,42 @@
     return !(v===0||v==='0'||v===false||v==='false');
   }
   function applyLabelsAndVisibility(){
-    var c=cfg();
-    var items=[
-      {show:c.showMoney,label:c.moneyLabel,wrap:'statMoney',lab:'moneyLabel'},
-      {show:c.showScore,label:c.scoreLabel,wrap:'statScore',lab:'scoreLabel'},
-      {show:c.showAffection,label:c.affectionLabel,wrap:'statAffection',lab:'affectionLabel'}
-    ];
-    var any=false;
-    items.forEach(function(it){
-      var on=visible(it.show); any=any||on;
-      var w=document.getElementById(it.wrap);
-      if(w) w.style.display=on?'':'none';
-      var lab=document.getElementById(it.lab);
-      if(lab) lab.textContent=it.label;
-    });
-    var bar=document.getElementById('stats');
-    if(bar) bar.style.display=any?'':'none';
-  }
-  function watch(){
-    applyLabelsAndVisibility();
-    var bar=document.getElementById('stats');
-    if(!bar||bar.__statsObserved) return;
-    bar.__statsObserved=true;
-    new MutationObserver(function(){ applyLabelsAndVisibility(); }).observe(bar,{childList:true,subtree:true,characterData:true,attributes:true});
+    if(applying) return;
+    applying=true;
+    try{
+      var c=cfg();
+      var items=[
+        {show:c.showMoney,label:c.moneyLabel,wrap:'statMoney',lab:'moneyLabel'},
+        {show:c.showScore,label:c.scoreLabel,wrap:'statScore',lab:'scoreLabel'},
+        {show:c.showAffection,label:c.affectionLabel,wrap:'statAffection',lab:'affectionLabel'}
+      ];
+      var any=false;
+      items.forEach(function(it){
+        var on=visible(it.show); any=any||on;
+        var w=document.getElementById(it.wrap);
+        if(w) w.style.display=on?'':'none';
+        var lab=document.getElementById(it.lab);
+        if(lab) lab.textContent=it.label;
+      });
+      var bar=document.getElementById('stats');
+      if(bar) bar.style.display=any?'':'none';
+    }finally{
+      applying=false;
+    }
   }
   function hookButtons(){
-    function refresh(){ setTimeout(applyLabelsAndVisibility, 50); setTimeout(applyLabelsAndVisibility, 300); }
+    function refresh(){
+      setTimeout(applyLabelsAndVisibility, 50);
+      setTimeout(applyLabelsAndVisibility, 300);
+    }
     ['start','again','resume','loadGame'].forEach(function(id){
       var el=document.getElementById(id);
       if(el) el.addEventListener('click', refresh);
     });
   }
   function boot(){
-    watch();
-    hookButtons();
     applyLabelsAndVisibility();
+    hookButtons();
   }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();
