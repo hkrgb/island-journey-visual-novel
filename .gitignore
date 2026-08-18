@@ -18,3 +18,10 @@
 Thumbs.db
 .vscode/
 
+# Node / Capacitor
+node_modules/
+package-lock.json
+
+# Capacitor native projects（本機用 Android Studio / Xcode 產生）
+/android/
+/ios/
