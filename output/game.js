@@ -37,7 +37,7 @@
  }catch(e){console.warn('Using bundled story',e)}
  finally{
   const script=document.createElement('script');
-  script.src='game-core.js?v=22';
+  script.src='game-core-loader.js?v=5';
   script.onload=function(){
     const o=document.createElement('script');
     o.src='stats-overlay.js?v=4';
@@ -46,7 +46,7 @@
     e.src='game-enhance.js?v=4';
     document.body.appendChild(e);
   };
-  script.onerror=()=>console.error('game-core.js failed to load');
+  script.onerror=()=>console.error('game-core-loader.js failed to load');
   document.body.appendChild(script);
  }
 })();
