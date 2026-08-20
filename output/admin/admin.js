@@ -1,11 +1,13 @@
 const SRC='https://raw.githubusercontent.com/hkrgb/island-journey-visual-novel/c5fceb05455bae9a3d049ccf5b46260c33ef23c3/output/admin/admin.js';
-const PURL='https://raw.githubusercontent.com/hkrgb/island-journey-visual-novel/main/output/admin/admin-p.txt';
+const P1='https://raw.githubusercontent.com/hkrgb/island-journey-visual-novel/main/output/admin/admin-p1.txt';
+const P2='https://raw.githubusercontent.com/hkrgb/island-journey-visual-novel/main/output/admin/admin-p2.txt';
 function decodeB64(s){const bin=atob(s);const bytes=new Uint8Array(bin.length);for(let i=0;i!==bin.length;++i)bytes[i]=bin.charCodeAt(i);return new TextDecoder().decode(bytes)}
 Promise.all([
   fetch(SRC+'?t='+Date.now()).then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.text()}),
-  fetch(PURL+'?t='+Date.now()).then(r=>{if(!r.ok)throw new Error('P HTTP '+r.status);return r.text()})
-]).then(([code,p])=>{
-  const patches=JSON.parse(decodeB64(p.trim()));
+  fetch(P1+'?t='+Date.now()).then(r=>r.text()),
+  fetch(P2+'?t='+Date.now()).then(r=>r.text())
+]).then(([code,p1,p2])=>{
+  const patches=JSON.parse(decodeB64((p1+p2).trim()));
   let n=0;
   for(const [a,b] of patches){if(code.indexOf(a)===-1){console.warn('patch miss',a.slice(0,40));continue}code=code.replace(a,b);n++}
   console.log('applied patches:',n);
