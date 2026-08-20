@@ -1,5 +1,19 @@
 const SRC='https://raw.githubusercontent.com/hkrgb/island-journey-visual-novel/c5fceb05455bae9a3d049ccf5b46260c33ef23c3/output/admin/admin.js';
-const PATCHES=[
-  ["function spriteOptions(value){const custom=characters.flatMap(c=>Object.keys(c.moods||{}).map(m=>c.key+':'+m));return '<option value=\"\">沒有立繪</option>'+[...Object.keys({...BASE_SPR,...assets.sprite}),...custom].map(x=>'<option '+(x===value?'selected':'')+'>'+esc(x)+'</option>').join('')}", "function spriteOptions(value){const opts=['<option value=\"\">沒有立繪</option>'];characters.forEach(c=>{const url=(c.image||'').trim()||Object.values(c.moods||{}).find(u=>u&&String(u).trim())||'';if(!url)return;const label=(c.name||'未命名')+(c.key?' · '+c.key:'');opts.push('<option value=\"'+esc(url)+'\"'+(value===url?' selected':'')+'>'+esc(label)+'</option>');});Object.keys({...BASE_SPR,...(assets.sprite||{})}).forEach(k=>{opts.push('<option value=\"'+esc(k)+'\"'+(value===k?' selected':'')+'>'+esc(k)+'</option>');});return opts.join('');}"]
-];
-fetch(SRC+'?t='+Date.now()).then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.text()}).then(code=>{for(const[a,b]of PATCHES){if(code.indexOf(a)>=0)code=code.replace(a,b);}return import(URL.createObjectURL(new Blob([code],{type:'text/javascript'})));}).catch(e=>{console.error(e);const m=document.getElementById('loginMsg');if(m)m.textContent='載入後台失敗：'+e.message;});
+const PATCH_URL='https://raw.githubusercontent.com/hkrgb/island-journey-visual-novel/main/output/admin/admin-patches.json';
+Promise.all([
+  fetch(SRC+'?t='+Date.now()).then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.text()}),
+  fetch(PATCH_URL+'?t='+Date.now()).then(r=>{if(!r.ok)throw new Error('patches HTTP '+r.status);return r.json()})
+]).then(([code, patches])=>{
+  let n=0;
+  for(const [a,b] of patches){
+    if(code.indexOf(a)<0){console.warn('patch miss',a.slice(0,40));continue}
+    code=code.replace(a,b);n++;
+  }
+  console.log('applied patches:',n);
+  code=code.replace("].forEach(id=>$('#'+id).oninput=()=>syncDisplay())","].forEach(id=>{const el=$('#'+id);if(el)el.oninput=()=>syncDisplay()})");
+  code=code.replace("].forEach(k=>$('#'+k).value=settings[k])","].forEach(k=>{const el=$('#'+k);if(el)el.value=(settings[k]!=null?settings[k]:'')})");
+  code=code.replace("['chapterId','chapterNo','chapterName','chapterMusic','chapterIntro','chapterOutro'].forEach(id=>$('#'+id).oninput=syncChapter)","['chapterId','chapterNo','chapterName','chapterMusic','chapterIntro','chapterOutro'].forEach(id=>{const el=$('#'+id);if(el)el.oninput=syncChapter})");
+  code=code.replace("['sceneId','sceneName','bg','place','streetUrl','streetLat','streetLng','streetHeading','streetPitch','streetZoom','iframeUrl','requirements','effects','sceneMusic'].forEach(id=>$('#'+id).oninput=syncScene)","['sceneId','sceneName','bg','place','streetUrl','streetLat','streetLng','streetHeading','streetPitch','streetZoom','iframeUrl','requirements','effects','sceneMusic'].forEach(id=>{const el=$('#'+id);if(el)el.oninput=syncScene})");
+  code=code.replace("Object.values(sf).forEach(e=>e.oninput=syncSettings)","Object.values(sf).forEach(e=>{if(e)e.oninput=syncSettings})");
+  return import(URL.createObjectURL(new Blob([code],{type:'text/javascript'})));
+}).catch(e=>{console.error(e);const m=document.getElementById('loginMsg');if(m)m.textContent='載入後台失敗：'+e.message;});
