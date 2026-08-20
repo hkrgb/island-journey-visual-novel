@@ -3,6 +3,17 @@ fetch(SRC+'?t='+Date.now()).then(r=>{
   if(!r.ok) throw new Error('HTTP '+r.status);
   return r.text();
 }).then(code=>{
+  // 角色立繪／表情：改成直接輸入圖片 URL（唔再要下拉）
+  code=code.replace(
+    '<label>角色立繪／表情<select data-field="sprite">\'+spriteOptions(l.sprite)+\'</select></label>',
+    '<label>角色立繪 URL<input data-field="sprite" value="\'+esc(l.sprite)+\'" placeholder="https://..."></label>'
+  );
+  // assetUrl：支援直接用 http(s) URL
+  code=code.replace(
+    "const assetUrl=(type,key)=>resolveUrl((assets[type]&&assets[type][key])||(type==='bg'?BASE_BGS:BASE_SPR)[key]||'');",
+    "const assetUrl=(type,key)=>{if(!key)return'';if(/^https?:\\/\\//i.test(key)||key.startsWith('data:'))return resolveUrl(key);return resolveUrl((assets[type]&&assets[type][key])||(type==='bg'?BASE_BGS:BASE_SPR)[key]||key||'');};"
+  );
+  // null-safe event bindings
   code=code.replace(
     "].forEach(id=>$('#'+id).oninput=()=>syncDisplay())",
     "].forEach(id=>{const el=$('#'+id);if(el)el.oninput=()=>syncDisplay()})"
@@ -22,10 +33,6 @@ fetch(SRC+'?t='+Date.now()).then(r=>{
   code=code.replace(
     "Object.values(sf).forEach(e=>e.oninput=syncSettings)",
     "Object.values(sf).forEach(e=>{if(e)e.oninput=syncSettings})"
-  );
-  code=code.replace(
-    "const assetUrl=(type,key)=>resolveUrl((assets[type]&&assets[type][key])||(type==='bg'?BASE_BGS:BASE_SPR)[key]||'');",
-    "const assetUrl=(type,key)=>{if(!key)return'';if(/^https?:\\/\\//i.test(key)||key.startsWith('data:'))return resolveUrl(key);return resolveUrl((assets[type]&&assets[type][key])||(type==='bg'?BASE_BGS:BASE_SPR)[key]||key||'');};"
   );
   return import(URL.createObjectURL(new Blob([code],{type:'text/javascript'})));
 }).catch(e=>{
