@@ -1,5 +1,4 @@
 (async()=>{
- // Mobile orientation / fullscreen prompts (load immediately)
  (function(){
    var g=document.createElement('script');
    g.src='mobile-guard.js?v=1';
@@ -37,7 +36,7 @@
  }catch(e){console.warn('Using bundled story',e)}
  finally{
   const script=document.createElement('script');
-  script.src='game-core-loader.js?v=5';
+  script.src='game-core-loader.js?v=6';
   script.onload=function(){
     const o=document.createElement('script');
     o.src='stats-overlay.js?v=4';
