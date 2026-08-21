@@ -28,11 +28,21 @@ fetch(SRC+'?t='+Date.now()).then(r=>{
   );
   code=code.replace(
     "['sceneId','sceneName','bg','place','streetUrl','streetLat','streetLng','streetHeading','streetPitch','streetZoom','iframeUrl','requirements','effects','sceneMusic'].forEach(id=>$('#'+id).oninput=syncScene)",
-    "['sceneId','sceneName','bg','place','streetUrl','streetLat','streetLng','streetHeading','streetPitch','streetZoom','iframeUrl','requirements','effects','sceneMusic'].forEach(id=>{const el=$('#'+id);if(el)el.oninput=syncScene})"
+    "['sceneId','sceneName','bg','place','streetUrl','streetLat','streetLng','streetHeading','streetPitch','streetZoom','sceneMedia','iframeUrl','requirements','effects','sceneMusic'].forEach(id=>{const el=$('#'+id);if(el)el.oninput=syncScene})"
   );
   code=code.replace(
     "Object.values(sf).forEach(e=>e.oninput=syncSettings)",
     "Object.values(sf).forEach(e=>{if(e)e.oninput=syncSettings})"
+  );
+  // selectScene: load media field
+  code=code.replace(
+    "$('#iframeUrl').value=s.iframeUrl||'';",
+    "$('#sceneMedia').value=s.media||'';$('#iframeUrl').value=s.iframeUrl||'';"
+  );
+  // syncScene: save media field
+  code=code.replace(
+    "s.iframeUrl=$('#iframeUrl').value;",
+    "s.media=($('#sceneMedia')&&$('#sceneMedia').value||'').trim();s.iframeUrl=$('#iframeUrl').value;"
   );
   return import(URL.createObjectURL(new Blob([code],{type:'text/javascript'})));
 }).catch(e=>{
