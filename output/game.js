@@ -39,7 +39,7 @@
   script.src='game-core-loader.js?v=9';
   script.onload=function(){
     const o=document.createElement('script');
-    o.src='stats-overlay.js?v=4';
+    o.src='stats-overlay.js?v=5';
     document.body.appendChild(o);
     const e=document.createElement('script');
     e.src='game-enhance.js?v=4';

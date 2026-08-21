@@ -44,6 +44,39 @@ fetch(SRC+'?t='+Date.now()).then(r=>{
     "s.iframeUrl=$('#iframeUrl').value;",
     "s.media=($('#sceneMedia')&&$('#sceneMedia').value||'').trim();s.iframeUrl=$('#iframeUrl').value;"
   );
+
+  // === Stats visibility: load into form when opening settings ===
+  code=code.replace(
+    "Object.entries(sf).forEach(([k,e])=>e.value=settings[k]||'');",
+    "Object.entries(sf).forEach(([k,e])=>{if(e)e.value=settings[k]||''});"+
+    "['showMoney','showScore','showAffection'].forEach(k=>{const el=$('#'+k);if(el)el.value=(settings[k]===0||settings[k]==='0')?'0':'1'});"+
+    "['moneyLabel','scoreLabel','affectionLabel'].forEach(k=>{const el=$('#'+k);if(el)el.value=settings[k]||el.placeholder||''});"+
+    "['defaultMoney','defaultScore','defaultAffection'].forEach(k=>{const el=$('#'+k);if(el)el.value=settings[k]!=null?settings[k]:0});"
+  );
+
+  // === Stats visibility: save from form into settings ===
+  code=code.replace(
+    "function syncSettings(){Object.entries(sf).forEach(([k,e])=>settings[k]=e.value);",
+    "function syncStatsFields(){"+
+    "['showMoney','showScore','showAffection'].forEach(k=>{const el=$('#'+k);if(el)settings[k]=el.value});"+
+    "['moneyLabel','scoreLabel','affectionLabel'].forEach(k=>{const el=$('#'+k);if(el)settings[k]=el.value});"+
+    "['defaultMoney','defaultScore','defaultAffection'].forEach(k=>{const el=$('#'+k);if(el)settings[k]=+el.value||0});"+
+    "}\nfunction syncSettings(){Object.entries(sf).forEach(([k,e])=>{if(e)settings[k]=e.value});syncStatsFields();"
+  );
+
+  // Always sync stats on save, even if not currently on settings form
+  code=code.replace(
+    "async function save(kind='draft'){if(mode==='settings')syncSettings();if(mode==='chapter')syncChapter();if(mode==='scene')syncScene();",
+    "async function save(kind='draft'){if(mode==='settings')syncSettings();else if(typeof syncStatsFields==='function')syncStatsFields();if(mode==='chapter')syncChapter();if(mode==='scene')syncScene();"
+  );
+
+  // Wire change handlers for stats fields after main bindings
+  code=code.replace(
+    "$('#analyseStreetBtn').onclick=analyseStreetUrl;",
+    "$('#analyseStreetBtn').onclick=analyseStreetUrl;"+
+    "['showMoney','showScore','showAffection','moneyLabel','scoreLabel','affectionLabel','defaultMoney','defaultScore','defaultAffection'].forEach(id=>{const el=$('#'+id);if(el){el.onchange=()=>{syncStatsFields();mark('數值列設定已修改')};el.oninput=()=>{syncStatsFields();mark('數值列設定已修改')}}});"
+  );
+
   return import(URL.createObjectURL(new Blob([code],{type:'text/javascript'})));
 }).catch(e=>{
   console.error(e);

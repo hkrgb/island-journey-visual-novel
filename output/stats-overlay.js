@@ -26,25 +26,39 @@
       items.forEach(function(it){
         var on=visible(it.show); any=any||on;
         var w=document.getElementById(it.wrap);
-        if(w) w.style.display=on?'':'none';
+        if(w){
+          if(on){ w.style.display=''; w.removeAttribute('hidden'); }
+          else { w.style.display='none'; w.setAttribute('hidden',''); }
+        }
         var lab=document.getElementById(it.lab);
         if(lab) lab.textContent=it.label;
       });
       var bar=document.getElementById('stats');
-      if(bar) bar.style.display=any?'':'none';
+      if(bar){
+        if(any){ bar.style.display=''; bar.removeAttribute('hidden'); }
+        else { bar.style.display='none'; bar.setAttribute('hidden',''); }
+      }
     }finally{
       applying=false;
     }
   }
   function hookButtons(){
     function refresh(){
-      setTimeout(applyLabelsAndVisibility, 50);
-      setTimeout(applyLabelsAndVisibility, 300);
+      setTimeout(applyLabelsAndVisibility, 30);
+      setTimeout(applyLabelsAndVisibility, 200);
+      setTimeout(applyLabelsAndVisibility, 600);
     }
     ['start','again','resume','loadGame'].forEach(function(id){
       var el=document.getElementById(id);
       if(el) el.addEventListener('click', refresh);
     });
+    // Re-apply when reader view becomes active
+    var reader=document.getElementById('reader');
+    if(reader && window.MutationObserver){
+      new MutationObserver(function(){
+        if(reader.classList.contains('active')) applyLabelsAndVisibility();
+      }).observe(reader,{attributes:true,attributeFilter:['class']});
+    }
   }
   function boot(){
     applyLabelsAndVisibility();
@@ -52,7 +66,16 @@
   }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();
-  setTimeout(applyLabelsAndVisibility, 300);
-  setTimeout(applyLabelsAndVisibility, 1000);
-  setTimeout(applyLabelsAndVisibility, 2500);
+  // GAME_SETTINGS is set async by game.js — re-apply several times
+  setTimeout(applyLabelsAndVisibility, 200);
+  setTimeout(applyLabelsAndVisibility, 800);
+  setTimeout(applyLabelsAndVisibility, 1500);
+  setTimeout(applyLabelsAndVisibility, 3000);
+  // Also watch for GAME_SETTINGS assignment
+  var tries=0;
+  var poll=setInterval(function(){
+    tries++;
+    applyLabelsAndVisibility();
+    if(tries>20||(window.GAME_SETTINGS&&('showMoney' in window.GAME_SETTINGS||'showScore' in window.GAME_SETTINGS))) clearInterval(poll);
+  },250);
 })();
