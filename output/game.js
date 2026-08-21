@@ -24,7 +24,7 @@
    const cache={};
    await Promise.all([...new Set(refs)].map(async ref=>{const id=ref.slice(10),response=await fetch(`https://firestore.googleapis.com/v1/projects/island-journey-rgb/databases/(default)/documents/media/${encodeURIComponent(id)}`);if(response.ok){const data=await response.json();cache[ref]=data.fields?.dataUrl?.stringValue||''}}));
    const resolve=value=>cache[value]||value;
-   window.STORY=(p.story||[]).flatMap(scene=>Array.isArray(scene.lines)?scene.lines.map((line,index)=>{const item={...scene,...line};delete item.lines;if(index>0){delete item.c;delete item.start;delete item.place}if(index<scene.lines.length-1)delete item.end;return item}):[scene]);
+   window.STORY=(p.story||[]).flatMap(scene=>Array.isArray(scene.lines)?scene.lines.map((line,index)=>{const item={...scene,...line};delete item.lines;if(index>0){delete item.c;delete item.start;delete item.place;delete item.media;delete item.iframeUrl;delete item.effects;delete item.requirements}if(index<scene.lines.length-1)delete item.end;return item}):[scene]);
    window.CHAPTERS=p.chapters||window.CHAPTERS;
    window.GAME_SETTINGS=p.settings||{};
    window.GAME_CHARACTERS=p.characters||[];
@@ -36,7 +36,7 @@
  }catch(e){console.warn('Using bundled story',e)}
  finally{
   const script=document.createElement('script');
-  script.src='game-core-loader.js?v=6';
+  script.src='game-core-loader.js?v=7';
   script.onload=function(){
     const o=document.createElement('script');
     o.src='stats-overlay.js?v=4';
