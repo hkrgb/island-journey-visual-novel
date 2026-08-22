@@ -77,6 +77,30 @@ fetch(SRC+'?t='+Date.now()).then(r=>{
     "['showMoney','showScore','showAffection','moneyLabel','scoreLabel','affectionLabel','defaultMoney','defaultScore','defaultAffection'].forEach(id=>{const el=$('#'+id);if(el){el.onchange=()=>{syncStatsFields();mark('數值列設定已修改')};el.oninput=()=>{syncStatsFields();mark('數值列設定已修改')}}});"
   );
 
+  // === BGM volume ===
+  code=code.replace(
+    "['projectName','siteTitle','coverImage','logoImage','defaultMusic','mapsApiKey','edition','startLabel','resumeLabel','contentsLabel','credit','award','endingTitle','endingQuote','endingNote','againLabel']",
+    "['projectName','siteTitle','coverImage','logoImage','defaultMusic','mapsApiKey','edition','startLabel','resumeLabel','contentsLabel','credit','award','endingTitle','endingQuote','endingNote','againLabel','bgmVolume']"
+  );
+  code=code.replace(
+    "defaultMusic:'',mapsApiKey:''",
+    "defaultMusic:'',bgmVolume:40,mapsApiKey:''"
+  );
+  code=code.replace(
+    "Object.entries(sf).forEach(([k,e])=>{if(e)e.value=settings[k]||''});",
+    "Object.entries(sf).forEach(([k,e])=>{if(!e)return;if(k==='bgmVolume'){e.value=settings.bgmVolume!=null?settings.bgmVolume:40;const lb=$('#bgmVolumeLabel');if(lb)lb.textContent=e.value}else e.value=settings[k]||''});"
+  );
+  code=code.replace(
+    "function syncSettings(){Object.entries(sf).forEach(([k,e])=>{if(e)settings[k]=e.value});syncStatsFields();",
+    "function syncSettings(){Object.entries(sf).forEach(([k,e])=>{if(!e)return;settings[k]=k==='bgmVolume'?(+e.value||0):e.value});"+
+    "const lb=$('#bgmVolumeLabel');if(lb&&sf.bgmVolume)lb.textContent=sf.bgmVolume.value;syncStatsFields();"
+  );
+  code=code.replace(
+    "Object.values(sf).forEach(e=>{if(e)e.oninput=syncSettings})",
+    "Object.values(sf).forEach(e=>{if(e)e.oninput=syncSettings});"+
+    "(function(){const el=$('#bgmVolume');if(el){el.oninput=()=>{syncSettings();const lb=$('#bgmVolumeLabel');if(lb)lb.textContent=el.value}}})();"
+  );
+
   return import(URL.createObjectURL(new Blob([code],{type:'text/javascript'})));
 }).catch(e=>{
   console.error(e);
