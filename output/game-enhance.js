@@ -1,5 +1,4 @@
 (function(){
-  // Create stubs immediately so game-core onclick assignment never throws
   ['auto','backlog'].forEach(function(id){
     if(!document.getElementById(id)){
       var b=document.createElement('button');
@@ -52,6 +51,8 @@
     np.style.maxWidth = 'min(90%, 520px)';
     np.style.width = 'max-content';
     np.style.boxSizing = 'border-box';
+    np.style.top = '-38px';
+    np.style.zIndex = '2';
     var sp = np.querySelector('span');
     if(sp){
       sp.style.whiteSpace = 'nowrap';
@@ -148,17 +149,179 @@
     window.render.__fontHooked = true;
   }
 
+  function saveKey(){
+    return 'visualNovelSave:'+(window.GAME_ID||'island-journey');
+  }
+  function fmtTime(ts){
+    try{
+      var d=new Date(ts); if(isNaN(d.getTime())) return '';
+      var p=function(n){return String(n).padStart(2,'0')};
+      return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes());
+    }catch(e){ return ''; }
+  }
+  function readSave(){
+    try{
+      var raw=localStorage.getItem(saveKey());
+      if(!raw) return null;
+      var data=JSON.parse(raw);
+      if(!data || typeof data.i !== 'number') return null;
+      return data;
+    }catch(e){ return null; }
+  }
+  function writeSave(st){
+    var payload={
+      i: (st.i|0),
+      vars:{
+        money: +(st.vars && st.vars.money) || 0,
+        score: +(st.vars && st.vars.score) || 0,
+        affection: +(st.vars && st.vars.affection) || 0
+      },
+      applied: st.applied || {},
+      log: st.log || [],
+      savedAt: Date.now()
+    };
+    localStorage.setItem(saveKey(), JSON.stringify(payload));
+    return payload;
+  }
+  function refreshLabels(){
+    var data=readSave();
+    var t=data && data.savedAt ? fmtTime(data.savedAt) : '';
+    var page=data ? ('第 '+(Number(data.i)+1)+' 頁') : '';
+    var scores=data && data.vars ? (' · 金'+(data.vars.money||0)+' 分'+(data.vars.score||0)+' 感'+(data.vars.affection||0)) : '';
+    var sg=document.getElementById('saveGame');
+    var lg=document.getElementById('loadGame');
+    if(sg){
+      if(t) sg.innerHTML='儲存目前進度<small>'+t+scores+'</small>';
+      else sg.innerHTML='儲存目前進度<small>覆蓋自動存檔</small>';
+    }
+    if(lg){
+      if(t) lg.innerHTML='讀取進度<small>'+page+' · '+t+scores+'</small>';
+      else lg.innerHTML='讀取進度<small>尚未有存檔</small>';
+    }
+    var r=document.getElementById('resume');
+    if(r) r.disabled=!data;
+  }
+  function doSave(){
+    if(typeof state === 'undefined') return false;
+    try{
+      var payload=writeSave(state);
+      state.savedAt=payload.savedAt;
+      refreshLabels();
+      return true;
+    }catch(e){
+      console.warn('save failed', e);
+      return false;
+    }
+  }
+  function doLoad(){
+    var data=readSave();
+    if(!data) return false;
+    if(typeof state === 'undefined') return false;
+    state.i = Math.max(0, Math.min(Number(data.i)||0, Math.max(0,(window.STORY||[]).length-1)));
+    state.vars = {money:0, score:0, affection:0, ...(data.vars||{})};
+    state.applied = data.applied || {};
+    state.log = data.log || [];
+    state.savedAt = data.savedAt;
+    try{ if(typeof currentBg !== 'undefined') currentBg=''; }catch(e){}
+    try{ if(typeof wasStreetview !== 'undefined') wasStreetview=false; }catch(e){}
+    try{ if(typeof cardBusy !== 'undefined') cardBusy=false; }catch(e){}
+    if(typeof view === 'function') view('reader');
+    if(typeof render === 'function'){
+      var s = (window.STORY||[])[state.i];
+      if(!s){ if(typeof finish==='function') finish(); return true; }
+      try{
+        var c = (typeof chapterOf==='function') ? chapterOf(state.i) : 0;
+        var ch = (window.CHAPTERS||[])[c] || {};
+        var el;
+        el=document.getElementById('chNum'); if(el) el.textContent=ch.no||'';
+        el=document.getElementById('chName'); if(el) el.textContent=ch.name||'';
+        if(typeof showWorld==='function') showWorld(s);
+        if(typeof changeMusic==='function') changeMusic(s.music||ch.music);
+        var narration=!String(s.sp||'').trim()&&!String(s.en||'').trim();
+        var tb=document.getElementById('textbox');
+        if(tb) tb.classList.toggle('narration', narration);
+        if(typeof applyDialogueStyle==='function') applyDialogueStyle(narration);
+        el=document.getElementById('speaker'); if(el) el.textContent=s.sp||'';
+        el=document.getElementById('speakerEn'); if(el) el.textContent=s.en||'';
+        try{ full=s.t||''; }catch(e){}
+        el=document.getElementById('counter'); if(el) el.textContent=String(state.i+1).padStart(3,'0')+' / '+String((window.STORY||[]).length).padStart(3,'0');
+        el=document.getElementById('progressBar'); if(el) el.style.width=((state.i+1)/(window.STORY||[1]).length*100)+'%';
+        if(typeof setSprite==='function') setSprite(s);
+        if(typeof showChoices==='function') showChoices(s);
+        if(typeof updateStats==='function') updateStats();
+        if(typeof beginTyping==='function'){
+          try{ full = s.t||''; }catch(e){}
+          beginTyping();
+        } else {
+          el=document.getElementById('dialogue'); if(el) el.textContent=s.t||'';
+        }
+      }catch(err){
+        console.warn('resume UI error, fallback render', err);
+        render(false);
+      }
+    }
+    refreshLabels();
+    return true;
+  }
+  function patchSaveLoad(){
+    try{ window.save = doSave; }catch(e){}
+    var sg=document.getElementById('saveGame');
+    var lg=document.getElementById('loadGame');
+    var rs=document.getElementById('resume');
+    if(sg && !sg.__saveFix){
+      sg.__saveFix=true;
+      sg.addEventListener('click', function(e){
+        e.preventDefault(); e.stopPropagation();
+        if(doSave()){
+          var t=fmtTime(state.savedAt);
+          sg.innerHTML='已儲存<small>第 '+(state.i+1)+' 頁 · '+t+'</small>';
+          setTimeout(refreshLabels, 1600);
+        } else {
+          sg.innerHTML='儲存失敗<small>請檢查瀏覽器設定</small>';
+          setTimeout(refreshLabels, 1600);
+        }
+      }, true);
+    }
+    if(lg && !lg.__saveFix){
+      lg.__saveFix=true;
+      lg.addEventListener('click', function(e){
+        e.preventDefault(); e.stopPropagation();
+        if(doLoad()){
+          var menu=document.getElementById('game-menu');
+          if(menu) menu.classList.remove('open');
+        } else {
+          alert('沒有可讀取的存檔');
+          refreshLabels();
+        }
+      }, true);
+    }
+    if(rs && !rs.__saveFix){
+      rs.__saveFix=true;
+      rs.addEventListener('click', function(e){
+        e.preventDefault(); e.stopPropagation();
+        if(!doLoad()) alert('沒有可讀取的存檔');
+      }, true);
+    }
+    var menuBtn=document.getElementById('gameMenuBtn');
+    if(menuBtn && !menuBtn.__saveFix){
+      menuBtn.__saveFix=true;
+      menuBtn.addEventListener('click', function(){ refreshLabels(); }, true);
+    }
+    refreshLabels();
+  }
+
   function boot(){
     patchShowWorld();
     hookRender();
     styleNameplate();
     wireMenuControls();
     applyFonts();
+    patchSaveLoad();
   }
   var tries = 0;
   (function wait(){
     tries++;
-    if(typeof showWorld === 'function' || tries > 40) boot();
+    if(typeof showWorld === 'function' || tries > 60) boot();
     else setTimeout(wait, 100);
   })();
   document.addEventListener('DOMContentLoaded', function(){ setTimeout(boot, 50); });
