@@ -1,5 +1,132 @@
-(async()=>{
-  const a=await(await fetch('admin-p0.js?v=1')).text();
-  const b=await(await fetch('admin-p1.js?v=1')).text();
-  await import(URL.createObjectURL(new Blob([a+b],{type:'text/javascript'})));
-})().catch(e=>{console.error(e);const m=document.getElementById('loginMsg');if(m)m.textContent='Load failed: '+e.message});
+const SRC='https://raw.githubusercontent.com/hkrgb/island-journey-visual-novel/c5fceb05455bae9a3d049ccf5b46260c33ef23c3/output/admin/admin.js';
+fetch(SRC+'?t='+Date.now()).then(r=>{
+  if(!r.ok) throw new Error('HTTP '+r.status);
+  return r.text();
+}).then(code=>{
+  // 角色立繪／表情：改成直接輸入圖片 URL（唔再要下拉）
+  code=code.replace(
+    '<label>角色立繪／表情<select data-field="sprite">\'+spriteOptions(l.sprite)+\'</select></label>',
+    '<label>角色立繪 URL<input data-field="sprite" value="\'+esc(l.sprite)+\'" placeholder="https://..."></label>'
+  );
+  // assetUrl：支援直接用 http(s) URL
+  code=code.replace(
+    "const assetUrl=(type,key)=>resolveUrl((assets[type]&&assets[type][key])||(type==='bg'?BASE_BGS:BASE_SPR)[key]||'');",
+    "const assetUrl=(type,key)=>{if(!key)return'';if(/^https?:\\/\\//i.test(key)||key.startsWith('data:'))return resolveUrl(key);return resolveUrl((assets[type]&&assets[type][key])||(type==='bg'?BASE_BGS:BASE_SPR)[key]||key||'');};"
+  );
+  // null-safe event bindings
+  code=code.replace(
+    "].forEach(id=>$('#'+id).oninput=()=>syncDisplay())",
+    "].forEach(id=>{const el=$('#'+id);if(el)el.oninput=()=>syncDisplay()})"
+  );
+  code=code.replace(
+    "].forEach(k=>$('#'+k).value=settings[k])",
+    "].forEach(k=>{const el=$('#'+k);if(el)el.value=(settings[k]!=null?settings[k]:'')})"
+  );
+  code=code.replace(
+    "['chapterId','chapterNo','chapterName','chapterMusic','chapterIntro','chapterOutro'].forEach(id=>$('#'+id).oninput=syncChapter)",
+    "['chapterId','chapterNo','chapterName','chapterMusic','chapterIntro','chapterOutro'].forEach(id=>{const el=$('#'+id);if(el)el.oninput=syncChapter})"
+  );
+  code=code.replace(
+    "['sceneId','sceneName','bg','place','streetUrl','streetLat','streetLng','streetHeading','streetPitch','streetZoom','iframeUrl','requirements','effects','sceneMusic'].forEach(id=>$('#'+id).oninput=syncScene)",
+    "['sceneId','sceneName','bg','place','streetUrl','streetLat','streetLng','streetHeading','streetPitch','streetZoom','sceneMedia','iframeUrl','requirements','effects','sceneMusic'].forEach(id=>{const el=$('#'+id);if(el)el.oninput=syncScene})"
+  );
+  code=code.replace(
+    "Object.values(sf).forEach(e=>e.oninput=syncSettings)",
+    "Object.values(sf).forEach(e=>{if(e)e.oninput=syncSettings})"
+  );
+  // selectScene: load media field
+  code=code.replace(
+    "$('#iframeUrl').value=s.iframeUrl||'';",
+    "$('#sceneMedia').value=s.media||'';$('#iframeUrl').value=s.iframeUrl||'';"
+  );
+  // syncScene: save media field
+  code=code.replace(
+    "s.iframeUrl=$('#iframeUrl').value;",
+    "s.media=($('#sceneMedia')&&$('#sceneMedia').value||'').trim();s.iframeUrl=$('#iframeUrl').value;"
+  );
+
+  // === Stats visibility: load into form when opening settings ===
+  code=code.replace(
+    "Object.entries(sf).forEach(([k,e])=>e.value=settings[k]||'');",
+    "Object.entries(sf).forEach(([k,e])=>{if(e)e.value=settings[k]||''});"+
+    "['showMoney','showScore','showAffection'].forEach(k=>{const el=$('#'+k);if(el)el.value=(settings[k]===0||settings[k]==='0')?'0':'1'});"+
+    "['moneyLabel','scoreLabel','affectionLabel'].forEach(k=>{const el=$('#'+k);if(el)el.value=settings[k]||el.placeholder||''});"+
+    "['defaultMoney','defaultScore','defaultAffection'].forEach(k=>{const el=$('#'+k);if(el)el.value=settings[k]!=null?settings[k]:0});"
+  );
+
+  // === Stats visibility: save from form into settings (only when on settings form) ===
+  code=code.replace(
+    "function syncSettings(){Object.entries(sf).forEach(([k,e])=>settings[k]=e.value);",
+    "function syncStatsFields(){"+
+    "['showMoney','showScore','showAffection'].forEach(k=>{const el=$('#'+k);if(el)settings[k]=el.value});"+
+    "['moneyLabel','scoreLabel','affectionLabel'].forEach(k=>{const el=$('#'+k);if(el)settings[k]=el.value});"+
+    "['defaultMoney','defaultScore','defaultAffection'].forEach(k=>{const el=$('#'+k);if(el)settings[k]=+el.value||0});"+
+    "}\nfunction syncSettings(){Object.entries(sf).forEach(([k,e])=>{if(e)settings[k]=e.value});syncStatsFields();"
+  );
+
+  // CRITICAL: only sync stats from DOM when mode is settings — never when saving scene/chapter
+  // (hidden form selects default to 顯示 and would overwrite saved 隱藏)
+  code=code.replace(
+    "async function save(kind='draft'){if(mode==='settings')syncSettings();if(mode==='chapter')syncChapter();if(mode==='scene')syncScene();",
+    "async function save(kind='draft'){if(mode==='settings'){if(typeof syncStatsFields==='function')syncStatsFields();syncSettings()}if(mode==='chapter')syncChapter();if(mode==='scene')syncScene();"
+  );
+
+  // Wire change handlers for stats fields after main bindings
+  code=code.replace(
+    "$('#analyseStreetBtn').onclick=analyseStreetUrl;",
+    "$('#analyseStreetBtn').onclick=analyseStreetUrl;"+
+    "['showMoney','showScore','showAffection','moneyLabel','scoreLabel','affectionLabel','defaultMoney','defaultScore','defaultAffection'].forEach(id=>{const el=$('#'+id);if(el){el.onchange=()=>{syncStatsFields();mark('數值列設定已修改')};el.oninput=()=>{syncStatsFields();mark('數值列設定已修改')}}});"
+  );
+
+  // === BGM volume ===
+  code=code.replace(
+    "['projectName','siteTitle','coverImage','logoImage','defaultMusic','mapsApiKey','edition','startLabel','resumeLabel','contentsLabel','credit','award','endingTitle','endingQuote','endingNote','againLabel']",
+    "['projectName','siteTitle','coverImage','logoImage','defaultMusic','mapsApiKey','edition','startLabel','resumeLabel','contentsLabel','credit','award','endingTitle','endingQuote','endingNote','againLabel','bgmVolume']"
+  );
+  code=code.replace(
+    "defaultMusic:'',mapsApiKey:''",
+    "defaultMusic:'',bgmVolume:40,mapsApiKey:''"
+  );
+  code=code.replace(
+    "Object.entries(sf).forEach(([k,e])=>{if(e)e.value=settings[k]||''});",
+    "Object.entries(sf).forEach(([k,e])=>{if(!e)return;if(k==='bgmVolume'){e.value=settings.bgmVolume!=null?settings.bgmVolume:40;const lb=$('#bgmVolumeLabel');if(lb)lb.textContent=e.value}else e.value=settings[k]||''});"
+  );
+  code=code.replace(
+    "function syncSettings(){Object.entries(sf).forEach(([k,e])=>{if(e)settings[k]=e.value});syncStatsFields();",
+    "function syncSettings(){Object.entries(sf).forEach(([k,e])=>{if(!e)return;settings[k]=k==='bgmVolume'?(+e.value||0):e.value});"+
+    "const lb=$('#bgmVolumeLabel');if(lb&&sf.bgmVolume)lb.textContent=sf.bgmVolume.value;syncStatsFields();"
+  );
+  code=code.replace(
+    "Object.values(sf).forEach(e=>{if(e)e.oninput=syncSettings})",
+    "Object.values(sf).forEach(e=>{if(e)e.oninput=syncSettings});"+
+    "(function(){const el=$('#bgmVolume');if(el){el.oninput=()=>{syncSettings();const lb=$('#bgmVolumeLabel');if(lb)lb.textContent=el.value}}})();"
+  );
+
+  // === Keep stats hide settings: hydrate form FROM settings after load ===
+  code=code.replace(
+    "settings={...DEFAULT_SETTINGS,...data.settings};",
+    "settings={...DEFAULT_SETTINGS,...data.settings};(function(){try{['showMoney','showScore','showAffection'].forEach(function(k){var el=$('#'+k);if(!el)return;var v=settings[k];el.value=(v===0||v==='0'||v===false||v==='false')?'0':'1'});['moneyLabel','scoreLabel','affectionLabel'].forEach(function(k){var el=$('#'+k);if(el)el.value=settings[k]||el.placeholder||''});['defaultMoney','defaultScore','defaultAffection'].forEach(function(k){var el=$('#'+k);if(el)el.value=settings[k]!=null?settings[k]:0});}catch(e){}})();"
+  );
+
+  // Clearer draft vs publish status
+  code=code.replace(
+    "dirty=false;setStatus(kind==='published'?'已正式發布':'草稿已儲存')}",
+    "dirty=false;if(kind==='published'){setStatus('✅ 已正式發布 — 玩家端已更新')}else{setStatus('📝 草稿已儲存（玩家端仍用舊版，請按「發布」才會生效）')}}"
+  );
+  // Auto-save hint
+  code=code.replace(
+    "function mark(t='內容已修改'){dirty=true;setStatus(t);if(autoSaveTimer)clearTimeout(autoSaveTimer);autoSaveTimer=setTimeout(()=>{if(dirty)save('draft')},45000)}",
+    "function mark(t='內容已修改'){dirty=true;setStatus(t+'（約45秒後自動存草稿）');if(autoSaveTimer)clearTimeout(autoSaveTimer);autoSaveTimer=setTimeout(function(){if(dirty){setStatus('正在自動存草稿…');save('draft')}},45000)}"
+  );
+  // Null-safe onclick bindings for buttons that may be absent
+  code=code.replace(
+    "$('#duplicateSceneBtn').onclick=()=>{scenes.splice(selectedScene+1,0,structuredClone(scenes[selectedScene]));selectedScene++;mark();selectScene(selectedScene)};",
+    "if($('#duplicateSceneBtn'))$('#duplicateSceneBtn').onclick=()=>{scenes.splice(selectedScene+1,0,structuredClone(scenes[selectedScene]));selectedScene++;mark();selectScene(selectedScene)};"
+  );
+
+  return import(URL.createObjectURL(new Blob([code],{type:'text/javascript'})));
+}).catch(e=>{
+  console.error(e);
+  const m=document.getElementById('loginMsg');
+  if(m) m.textContent='Load failed: '+e.message;
+});
