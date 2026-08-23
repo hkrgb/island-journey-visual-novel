@@ -36,7 +36,7 @@
  }catch(e){console.warn('Using bundled story',e)}
  finally{
   const script=document.createElement('script');
-  script.src='game-core-loader.js?v=9';
+  script.src='game-core-loader.js?v=10';
   script.onload=function(){
     const o=document.createElement('script');
     o.src='stats-overlay.js?v=5';
