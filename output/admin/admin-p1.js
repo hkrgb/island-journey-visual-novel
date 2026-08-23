@@ -38,7 +38,7 @@
   // Clearer draft vs publish status
   code=code.replace(
     "dirty=false;setStatus(kind==='published'?'已正式發布':'草稿已儲存')}",
-    "dirty=false;if(kind==='published'){setStatus('✅ 已正式發布 — 玩家端已更新')}else{setStatus('📝 草稿已儲存（玩家端仍用舊版，請按「發布」才會生效）')}"
+    "dirty=false;if(kind==='published'){setStatus('✅ 已正式發布 — 玩家端已更新')}else{setStatus('📝 草稿已儲存（玩家端仍用舊版，請按「發布」才會生效）')}}"
   );
   // Auto-save hint
   code=code.replace(
