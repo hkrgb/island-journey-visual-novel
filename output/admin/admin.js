@@ -54,7 +54,7 @@ fetch(SRC+'?t='+Date.now()).then(r=>{
     "['defaultMoney','defaultScore','defaultAffection'].forEach(k=>{const el=$('#'+k);if(el)el.value=settings[k]!=null?settings[k]:0});"
   );
 
-  // === Stats visibility: save from form into settings ===
+  // === Stats visibility: save from form into settings (only when on settings form) ===
   code=code.replace(
     "function syncSettings(){Object.entries(sf).forEach(([k,e])=>settings[k]=e.value);",
     "function syncStatsFields(){"+
@@ -64,10 +64,11 @@ fetch(SRC+'?t='+Date.now()).then(r=>{
     "}\nfunction syncSettings(){Object.entries(sf).forEach(([k,e])=>{if(e)settings[k]=e.value});syncStatsFields();"
   );
 
-  // Always sync stats on save, even if not currently on settings form
+  // CRITICAL: only sync stats from DOM when mode is settings — never when saving scene/chapter
+  // (hidden form selects default to 顯示 and would overwrite saved 隱藏)
   code=code.replace(
     "async function save(kind='draft'){if(mode==='settings')syncSettings();if(mode==='chapter')syncChapter();if(mode==='scene')syncScene();",
-    "async function save(kind='draft'){if(mode==='settings')syncSettings();else if(typeof syncStatsFields==='function')syncStatsFields();if(mode==='chapter')syncChapter();if(mode==='scene')syncScene();"
+    "async function save(kind='draft'){if(mode==='settings'){if(typeof syncStatsFields==='function')syncStatsFields();syncSettings()}if(mode==='chapter')syncChapter();if(mode==='scene')syncScene();"
   );
 
   // Wire change handlers for stats fields after main bindings
@@ -99,6 +100,12 @@ fetch(SRC+'?t='+Date.now()).then(r=>{
     "Object.values(sf).forEach(e=>{if(e)e.oninput=syncSettings})",
     "Object.values(sf).forEach(e=>{if(e)e.oninput=syncSettings});"+
     "(function(){const el=$('#bgmVolume');if(el){el.oninput=()=>{syncSettings();const lb=$('#bgmVolumeLabel');if(lb)lb.textContent=el.value}}})();"
+  );
+
+  // === Keep stats hide settings: hydrate form FROM settings after load ===
+  code=code.replace(
+    "settings={...DEFAULT_SETTINGS,...data.settings};",
+    "settings={...DEFAULT_SETTINGS,...data.settings};(function(){try{['showMoney','showScore','showAffection'].forEach(function(k){var el=$('#'+k);if(!el)return;var v=settings[k];el.value=(v===0||v==='0'||v===false||v==='false')?'0':'1'});['moneyLabel','scoreLabel','affectionLabel'].forEach(function(k){var el=$('#'+k);if(el)el.value=settings[k]||el.placeholder||''});['defaultMoney','defaultScore','defaultAffection'].forEach(function(k){var el=$('#'+k);if(el)el.value=settings[k]!=null?settings[k]:0});}catch(e){}})();"
   );
 
   return import(URL.createObjectURL(new Blob([code],{type:'text/javascript'})));
