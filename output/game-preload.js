@@ -1,5 +1,15 @@
 (function(){
   'use strict';
+  var BG={
+    ferry:'assets/ferry-cabin.png',office:'assets/office.jpg',market:'assets/market.jpg',room:'assets/room.jpg',storm:'assets/storm.jpg',sunrise:'assets/sunrise.jpg',camera:'assets/camera.jpg',cafe:'assets/cafe.jpg',newspaper:'assets/tv.jpg',redbrick:'assets/official/red-brick.jpg',schoolAerial:'assets/official/school-aerial.jpg',classroom:'assets/classroom-clean.jpg',tv:'assets/tv.jpg',window:'assets/window.jpg',laptop:'assets/laptop.jpg',nightstall:'assets/night-stall.jpg',olympic:'assets/official/olympic-wall.jpg',schoolcourt:'assets/official/school-court.jpg',harbour:'assets/official/harbour.jpg',alley:'assets/official/alley-sunset.jpg',beach:'assets/kwun-yam-wan.png'
+  };
+  var SPR={
+    hoito:'assets/characters/hoito/neutral.png',hoitoNeutral:'assets/characters/hoito/neutral.png',hoitoJoy:'assets/characters/hoito/joy.png',hoitoAnger:'assets/characters/hoito/anger.png',hoitoSad:'assets/characters/hoito/sad.png',hoitoDelight:'assets/characters/hoito/delight.png',
+    kitty:'assets/characters/kitty/neutral.png',kittyNeutral:'assets/characters/kitty/neutral.png',kittyJoy:'assets/characters/kitty/joy.png',kittyAnger:'assets/characters/kitty/anger.png',kittySad:'assets/characters/kitty/sad.png',kittyDelight:'assets/characters/kitty/delight.png',
+    siningNeutral:'assets/characters/sining/neutral.png',siningHappy:'assets/characters/sining/joy.png',siningAnger:'assets/characters/sining/anger.png',siningCry:'assets/characters/sining/sad.png',siningThink:'assets/characters/sining/neutral.png',siningResolve:'assets/characters/sining/delight.png',
+    auntieNeutral:'assets/characters/holiday-auntie/neutral.png',auntieJoy:'assets/characters/holiday-auntie/joy.png',auntieAnger:'assets/characters/holiday-auntie/anger.png',auntieSad:'assets/characters/holiday-auntie/sad.png',auntieDelight:'assets/characters/holiday-auntie/delight.png'
+  };
+
   var preloadedChapters=new Set();
   var patched=false;
   function resolveAssetUrl(key,map){
@@ -16,11 +26,8 @@
   function collectChapterAssets(ch){
     var urls=new Set();
     var CHAPTERS=window.CHAPTERS||[],STORY=window.STORY||[];
-    var BG=window.BG||{},SPR=window.SPR||{};
-    if(window.GAME_ASSETS){
-      if(window.GAME_ASSETS.bg)Object.assign(BG,window.GAME_ASSETS.bg);
-      if(window.GAME_ASSETS.sprite)Object.assign(SPR,window.GAME_ASSETS.sprite);
-    }
+    var bgMap=Object.assign({},BG,window.BG||{},(window.GAME_ASSETS&&window.GAME_ASSETS.bg)||{});
+    var sprMap=Object.assign({},SPR,window.SPR||{},(window.GAME_ASSETS&&window.GAME_ASSETS.sprite)||{});
     var chap=CHAPTERS[ch];
     if(chap){
       [chap.intro,chap.outro,chap.video,chap.music].forEach(function(v){
@@ -33,8 +40,8 @@
     for(var i=0;i<STORY.length;i++){
       if(chapterOfSafe(i)!==ch)continue;
       var s=STORY[i];
-      if(s.bg){var u=resolveAssetUrl(s.bg,BG);if(u)urls.add(u);}
-      if(s.sprite){var su=resolveAssetUrl(s.sprite,SPR);if(su)urls.add(su);}
+      if(s.bg){var u=resolveAssetUrl(s.bg,bgMap);if(u)urls.add(u);}
+      if(s.sprite){var su=resolveAssetUrl(s.sprite,sprMap);if(su)urls.add(su);}
       if(s.music&&typeof s.music==='string'&&!/youtube|youtu\.be/i.test(s.music))urls.add(s.music);
       if(s.media){
         (Array.isArray(s.media)?s.media:[s.media]).forEach(function(m){
