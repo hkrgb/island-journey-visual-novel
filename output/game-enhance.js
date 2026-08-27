@@ -30,7 +30,8 @@
       var s2 = Object.assign({}, s, {bg: bg || s.bg});
       if(!s2.bg){
         var f = document.querySelector('#streetview');
-        if(f){ f.classList.add('hidden'); f.removeAttribute('src'); }
+        if(f){ f.classList.add('hidden'); f.removeAttribute('src');
+        }
         return;
       }
       return orig(s2);
@@ -163,4 +164,62 @@
     else setTimeout(wait, 100);
   })();
   document.addEventListener('DOMContentLoaded', function(){ setTimeout(boot, 50); });
+})();
+
+(function(){
+  function currentVars(){
+    var v = (window.state && state.vars) || {};
+    return {
+      score: Number(v.score)||0,
+      money: Number(v.money)||0,
+      affection: Number(v.affection)||0
+    };
+  }
+  function applySet(set){
+    if(!set || typeof set!=='object' || !window.state || !state.vars) return;
+    ['money','score','affection'].forEach(function(k){
+      if(Number.isFinite(+set[k])) state.vars[k] = +set[k];
+    });
+    if(typeof updateStats==='function') updateStats();
+    if(typeof save==='function') save();
+  }
+  window.addEventListener('message', function(e){
+    var d = e.data;
+    if(!d || typeof d!=='object') return;
+    if(d.type==='island-stats' && d.set) applySet(d.set);
+    else if(d.set) applySet(d.set);
+  });
+  function patchOpen(){
+    if(typeof openMiniGame!=='function' || openMiniGame.__bridged) return !!window.openMiniGame;
+    var orig = openMiniGame;
+    window.openMiniGame = function(url){
+      if(!url) return orig(url);
+      try{
+        var u = new URL(url, location.href);
+        var v = currentVars();
+        u.searchParams.set('score', v.score);
+        u.searchParams.set('money', v.money);
+        u.searchParams.set('affection', v.affection);
+        url = u.toString();
+      }catch(err){}
+      var box = document.getElementById('mini-game');
+      var iframe = box && box.querySelector('iframe');
+      if(iframe){
+        iframe.addEventListener('load', function(){
+          try{
+            iframe.contentWindow.postMessage(Object.assign({type:'island-stats'}, currentVars()), '*');
+          }catch(err){}
+        }, {once:true});
+      }
+      return orig(url);
+    };
+    window.openMiniGame.__bridged = true;
+    return true;
+  }
+  var n=0;
+  (function wait(){
+    n++;
+    if(patchOpen() || n>80) return;
+    setTimeout(wait, 100);
+  })();
 })();
