@@ -30,8 +30,7 @@
       var s2 = Object.assign({}, s, {bg: bg || s.bg});
       if(!s2.bg){
         var f = document.querySelector('#streetview');
-        if(f){ f.classList.add('hidden'); f.removeAttribute('src');
-        }
+        if(f){ f.classList.add('hidden'); f.removeAttribute('src'); }
         return;
       }
       return orig(s2);
@@ -172,7 +171,8 @@
     return {
       score: Number(v.score)||0,
       money: Number(v.money)||0,
-      affection: Number(v.affection)||0
+      affection: Number(v.affection)||0,
+      album: (v.gachaAlbum && typeof v.gachaAlbum==='object') ? v.gachaAlbum : {}
     };
   }
   function applySet(set){
@@ -180,6 +180,7 @@
     ['money','score','affection'].forEach(function(k){
       if(Number.isFinite(+set[k])) state.vars[k] = +set[k];
     });
+    if(set.gachaAlbum && typeof set.gachaAlbum==='object') state.vars.gachaAlbum = set.gachaAlbum;
     if(typeof updateStats==='function') updateStats();
     if(typeof save==='function') save();
   }
