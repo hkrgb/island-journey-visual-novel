@@ -166,6 +166,7 @@
 })();
 
 (function(){
+  var INV_KEY = 'islandJourneyInv:' + (window.GAME_ID || 'island-journey');
   function currentVars(){
     var v = (window.state && state.vars) || {};
     return {
@@ -173,17 +174,45 @@
       money: Number(v.money)||0,
       affection: Number(v.affection)||0,
       album: (v.gachaAlbum && typeof v.gachaAlbum==='object') ? v.gachaAlbum : {},
+      gachaAlbum: (v.gachaAlbum && typeof v.gachaAlbum==='object') ? v.gachaAlbum : {},
       fishingBag: Array.isArray(v.fishingBag) ? v.fishingBag : []
     };
   }
+  function writeInv(){
+    if(!window.state || !state.vars) return;
+    try{
+      localStorage.setItem(INV_KEY, JSON.stringify({
+        gachaAlbum: currentVars().gachaAlbum,
+        fishingBag: currentVars().fishingBag
+      }));
+    }catch(e){}
+  }
+  function clearInv(){
+    try{ localStorage.removeItem(INV_KEY); }catch(e){}
+    if(window.state && state.vars){
+      state.vars.gachaAlbum = {};
+      state.vars.fishingBag = [];
+    }
+  }
+  function restoreInv(){
+    var inv = null;
+    try{ inv = JSON.parse(localStorage.getItem(INV_KEY) || 'null'); }catch(e){ inv = null; }
+    if(!inv || !window.state || !state.vars) return;
+    if(inv.gachaAlbum && typeof inv.gachaAlbum==='object') state.vars.gachaAlbum = inv.gachaAlbum;
+    if(Array.isArray(inv.fishingBag)) state.vars.fishingBag = inv.fishingBag;
+  }
   function applySet(set){
-    if(!set || typeof set!=='object' || !window.state || !state.vars) return;
+    if(!set || typeof set!=='object') return;
+    if(!window.state) window.state = {vars:{}};
+    if(!state.vars) state.vars = {};
     ['money','score','affection'].forEach(function(k){
       if(Number.isFinite(+set[k])) state.vars[k] = +set[k];
     });
     if(set.gachaAlbum && typeof set.gachaAlbum==='object') state.vars.gachaAlbum = set.gachaAlbum;
+    if(set.album && typeof set.album==='object') state.vars.gachaAlbum = set.album;
     if(Array.isArray(set.fishingBag)) state.vars.fishingBag = set.fishingBag;
     if(typeof updateStats==='function') updateStats();
+    writeInv();
     if(typeof save==='function') save();
   }
   window.addEventListener('message', function(e){
@@ -197,6 +226,7 @@
     var orig = openMiniGame;
     window.openMiniGame = function(url){
       if(!url) return orig(url);
+      restoreInv();
       try{
         var u = new URL(url, location.href);
         var v = currentVars();
@@ -207,22 +237,67 @@
       }catch(err){}
       var box = document.getElementById('mini-game');
       var iframe = box && box.querySelector('iframe');
+      var payload = Object.assign({type:'island-stats'}, currentVars());
+      function ping(){
+        try{ iframe && iframe.contentWindow && iframe.contentWindow.postMessage(payload, '*'); }catch(err){}
+      }
       if(iframe){
         iframe.addEventListener('load', function(){
-          try{
-            iframe.contentWindow.postMessage(Object.assign({type:'island-stats'}, currentVars()), '*');
-          }catch(err){}
+          ping();
+          setTimeout(ping, 250);
+          setTimeout(ping, 800);
         }, {once:true});
       }
-      return orig(url);
+      var r = orig(url);
+      setTimeout(ping, 400);
+      return r;
     };
     window.openMiniGame.__bridged = true;
     return true;
   }
+  function wireSaveButtons(){
+    var startBtn = document.getElementById('start');
+    var againBtn = document.getElementById('again');
+    var resumeBtn = document.getElementById('resume');
+    var saveBtn = document.getElementById('saveGame');
+    var loadBtn = document.getElementById('loadGame');
+    if(startBtn && !startBtn.__inv){
+      startBtn.__inv = true;
+      startBtn.addEventListener('click', function(){ setTimeout(clearInv, 0); });
+    }
+    if(againBtn && !againBtn.__inv){
+      againBtn.__inv = true;
+      againBtn.addEventListener('click', function(){ setTimeout(clearInv, 0); });
+    }
+    if(resumeBtn && !resumeBtn.__inv){
+      resumeBtn.__inv = true;
+      resumeBtn.addEventListener('click', function(){ setTimeout(restoreInv, 80); setTimeout(restoreInv, 400); });
+    }
+    if(loadBtn && !loadBtn.__inv){
+      loadBtn.__inv = true;
+      loadBtn.addEventListener('click', function(){ setTimeout(restoreInv, 80); setTimeout(restoreInv, 400); });
+    }
+    if(saveBtn && !saveBtn.__inv){
+      saveBtn.__inv = true;
+      saveBtn.addEventListener('click', function(){ writeInv(); });
+    }
+    var closeBtn = document.querySelector('#mini-game > button');
+    if(closeBtn && !closeBtn.__inv){
+      closeBtn.__inv = true;
+      closeBtn.addEventListener('click', function(){
+        var iframe = document.querySelector('#mini-game iframe');
+        try{ iframe && iframe.contentWindow && iframe.contentWindow.postMessage({type:'island-stats', request:'dump'}, '*'); }catch(err){}
+        writeInv();
+        if(typeof save==='function') save();
+      });
+    }
+  }
   var n=0;
   (function wait(){
     n++;
-    if(patchOpen() || n>80) return;
+    patchOpen();
+    wireSaveButtons();
+    if(n>80) return;
     setTimeout(wait, 100);
   })();
 })();
