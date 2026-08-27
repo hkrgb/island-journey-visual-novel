@@ -172,7 +172,8 @@
       score: Number(v.score)||0,
       money: Number(v.money)||0,
       affection: Number(v.affection)||0,
-      album: (v.gachaAlbum && typeof v.gachaAlbum==='object') ? v.gachaAlbum : {}
+      album: (v.gachaAlbum && typeof v.gachaAlbum==='object') ? v.gachaAlbum : {},
+      fishingBag: Array.isArray(v.fishingBag) ? v.fishingBag : []
     };
   }
   function applySet(set){
@@ -181,6 +182,7 @@
       if(Number.isFinite(+set[k])) state.vars[k] = +set[k];
     });
     if(set.gachaAlbum && typeof set.gachaAlbum==='object') state.vars.gachaAlbum = set.gachaAlbum;
+    if(Array.isArray(set.fishingBag)) state.vars.fishingBag = set.fishingBag;
     if(typeof updateStats==='function') updateStats();
     if(typeof save==='function') save();
   }
