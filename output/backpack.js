@@ -3,17 +3,42 @@
   var GACHA_BASE='https://hkrgb.github.io/yes-card-gacha/';
   var FISH_BASE='https://hkrgb.github.io/hong-kong-fishing/';
   var catalog=null;
+  var ICON='<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M8 7V6a4 4 0 0 1 8 0v1h2.2A1.8 1.8 0 0 1 20 8.8v10.4A1.8 1.8 0 0 1 18.2 21H5.8A1.8 1.8 0 0 1 4 19.2V8.8A1.8 1.8 0 0 1 5.8 7H8zm2 0h4V6a2 2 0 1 0-4 0v1zm-1.2 4.2a.9.9 0 0 0 1.8 0V10H16v1.2a.9.9 0 1 0 1.8 0V10h.2v9.2H6V10h.8v1.2z"/></svg>';
   function abs(src,base){
     if(!src) return '';
     if(/^https?:|^data:|^\//.test(src)) return src;
     return base+src.replace(/^\.\//,'');
   }
+  function placeButton(){
+    var old=document.querySelector('#game-menu #openPack');
+    if(old) old.remove();
+    var btn=document.getElementById('openPack');
+    var menuBtn=document.getElementById('gameMenuBtn');
+    var bar=document.querySelector('.topbar');
+    if(!btn){
+      btn=document.createElement('button');
+      btn.id='openPack';
+      btn.type='button';
+      if(menuBtn&&menuBtn.parentNode) menuBtn.parentNode.insertBefore(btn, menuBtn);
+      else if(bar) bar.appendChild(btn);
+    }else if(menuBtn&&btn.nextSibling!==menuBtn){
+      menuBtn.parentNode.insertBefore(btn, menuBtn);
+    }
+    btn.className='round pack-btn';
+    btn.setAttribute('aria-label','我的背包');
+    btn.innerHTML=ICON;
+    if(!btn.__wired){
+      btn.__wired=true;
+      btn.onclick=function(e){ e.stopPropagation(); openPack(); };
+    }
+  }
   function ensure(){
     if(!document.querySelector('link[href^="backpack.css"]')){
       var css=document.createElement('link');
-      css.rel='stylesheet';css.href='backpack.css?v=2';
+      css.rel='stylesheet';css.href='backpack.css?v=3';
       document.head.appendChild(css);
     }
+    placeButton();
     if(document.getElementById('pack-modal')) return;
     var m=document.createElement('div');
     m.id='pack-modal';m.className='modal';
@@ -28,17 +53,6 @@
         render(b.getAttribute('data-tab'));
       };
     });
-    var menu=document.querySelector('#game-menu .menu-grid');
-    if(menu && !document.getElementById('openPack')){
-      var btn=document.createElement('button');
-      btn.id='openPack';btn.type='button';
-      btn.innerHTML='我的背包<small>卡牌與魚獲</small>';
-      menu.insertBefore(btn, menu.firstChild);
-      btn.onclick=function(){
-        document.getElementById('game-menu').classList.remove('open');
-        openPack();
-      };
-    }
   }
   function vars(){
     var v=(window.state&&state.vars)||{};

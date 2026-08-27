@@ -12,7 +12,9 @@
 #game-menu .menu-size-card small{font-size:11px}
 #game-menu .menu-size-card .size-controls{margin-top:2px;gap:6px}
 #game-menu .menu-size-card .size-controls button{width:30px;height:30px;font-size:14px}
-#openPack{grid-column:1/-1;background:#f7f1e4}
+#openPack.pack-btn{margin-left:8px;display:grid;place-items:center;padding:0;flex:none}
+#openPack.pack-btn svg{width:20px;height:20px;display:block}
+.menu-icon{margin-left:8px}
 @media (max-height:480px){
   #game-menu .game-menu-paper{padding:12px 16px 12px;max-height:92vh}
   #game-menu .game-menu-paper h2{font-size:20px}

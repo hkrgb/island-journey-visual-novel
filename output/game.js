@@ -45,7 +45,7 @@
     e.src='game-enhance.js?v=12';
     document.body.appendChild(e);
     const p=document.createElement('script');
-    p.src='backpack.js?v=2';
+    p.src='backpack.js?v=3';
     document.body.appendChild(p);
   };
   script.onerror=()=>console.error('game-core-loader.js failed to load');
