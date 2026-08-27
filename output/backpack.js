@@ -9,10 +9,12 @@
     return base+src.replace(/^\.\//,'');
   }
   function ensure(){
+    if(!document.querySelector('link[href^="backpack.css"]')){
+      var css=document.createElement('link');
+      css.rel='stylesheet';css.href='backpack.css?v=2';
+      document.head.appendChild(css);
+    }
     if(document.getElementById('pack-modal')) return;
-    var css=document.createElement('link');
-    css.rel='stylesheet';css.href='backpack.css?v=1';
-    document.head.appendChild(css);
     var m=document.createElement('div');
     m.id='pack-modal';m.className='modal';
     m.innerHTML='<div class="paper pack-paper"><button class="close" type="button">×</button><p class="cap">BACKPACK</p><h2>我的背包</h2><div class="pack-tabs"><button type="button" data-tab="cards" class="on">卡牌</button><button type="button" data-tab="fish">魚獲</button></div><div id="packGrid" class="pack-grid"></div><p id="packEmpty" class="pack-empty"></p></div>';
