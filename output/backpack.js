@@ -99,6 +99,8 @@
       return;
     }
     loadCatalog().then(function(cards){
+      var active=document.querySelector('#pack-modal .pack-tabs button.on');
+      if(!active||active.getAttribute('data-tab')!=='cards')return;
       var ids=Object.keys(data.album).filter(function(id){return +data.album[id]>0;});
       if(!ids.length){empty.textContent='尚未有卡牌，去扭卡機抽一張吧。';grid.innerHTML='';return;}
       empty.textContent='';
