@@ -15,6 +15,7 @@
 #openPack.pack-btn{margin-left:8px;display:grid;place-items:center;padding:0;flex:none}
 #openPack.pack-btn svg{width:20px;height:20px;display:block}
 .menu-icon{margin-left:8px}
+.certificate-item{grid-column:span 2;cursor:pointer}.certificate-item img{height:auto;aspect-ratio:3/2;object-fit:cover}.certificate-item:hover{border-color:#b98a38;box-shadow:0 5px 16px #17364a22}
 @media (max-height:480px){
   #game-menu .game-menu-paper{padding:12px 16px 12px;max-height:92vh}
   #game-menu .game-menu-paper h2{font-size:20px}

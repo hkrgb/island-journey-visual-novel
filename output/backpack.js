@@ -42,7 +42,7 @@
     if(document.getElementById('pack-modal')) return;
     var m=document.createElement('div');
     m.id='pack-modal';m.className='modal';
-    m.innerHTML='<div class="paper pack-paper"><button class="close" type="button">×</button><p class="cap">BACKPACK</p><h2>我的背包</h2><div class="pack-tabs"><button type="button" data-tab="cards" class="on">卡牌</button><button type="button" data-tab="fish">魚獲</button></div><div id="packGrid" class="pack-grid"></div><p id="packEmpty" class="pack-empty"></p></div>';
+    m.innerHTML='<div class="paper pack-paper"><button class="close" type="button">×</button><p class="cap">BACKPACK</p><h2>我的背包</h2><div class="pack-tabs"><button type="button" data-tab="cards" class="on">卡牌</button><button type="button" data-tab="fish">魚獲</button><button type="button" data-tab="certificates">證書</button></div><div id="packGrid" class="pack-grid"></div><p id="packEmpty" class="pack-empty"></p></div>';
     document.body.appendChild(m);
     m.querySelector('.close').onclick=function(){m.classList.remove('open');};
     m.onclick=function(e){if(e.target===m)m.classList.remove('open');};
@@ -58,7 +58,8 @@
     var v=(window.state&&state.vars)||{};
     return {
       album:(v.gachaAlbum&&typeof v.gachaAlbum==='object')?v.gachaAlbum:{},
-      bag:Array.isArray(v.fishingBag)?v.fishingBag:[]
+      bag:Array.isArray(v.fishingBag)?v.fishingBag:[],
+      certificates:(v.certificates&&typeof v.certificates==='object')?v.certificates:{}
     };
   }
   function loadCatalog(){
@@ -73,6 +74,19 @@
     if(!grid) return;
     grid.innerHTML='';
     var data=vars();
+    if(tab==='certificates'){
+      var certs=Object.values(data.certificates);
+      if(!certs.length){empty.textContent='尚未取得證書，完成釣魚或平安包全部關卡即可獲得。';return;}
+      empty.textContent='';
+      certs.forEach(function(cert){
+        var art=document.createElement('article');
+        art.className='pack-item certificate-item';
+        art.innerHTML='<img src="'+(cert.image||'')+'" alt=""><b>'+(cert.name||'達人證書')+'</b><span>已永久收藏</span>';
+        art.onclick=function(){window.open(cert.image,'_blank','noopener')};
+        grid.appendChild(art);
+      });
+      return;
+    }
     if(tab==='fish'){
       if(!data.bag.length){empty.textContent='尚未有魚獲，去釣魚小遊戲試試吧。';return;}
       empty.textContent='';
@@ -104,6 +118,8 @@
     if(inv && window.state && state.vars){
       if(inv.gachaAlbum) state.vars.gachaAlbum=inv.gachaAlbum;
       if(inv.fishingBag) state.vars.fishingBag=inv.fishingBag;
+      if(inv.fishingProgress) state.vars.fishingProgress=inv.fishingProgress;
+      if(inv.certificates) state.vars.certificates=inv.certificates;
     }
     document.getElementById('pack-modal').classList.add('open');
     var on=document.querySelector('#pack-modal .pack-tabs button.on');
