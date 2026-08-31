@@ -134,12 +134,15 @@
   function applyFonts(){
     var nameSz = getNameSize();
     var bodySz = getBodySize();
+    var app = document.getElementById('app');
+    var stageHeight = app ? app.getBoundingClientRect().height : window.innerHeight;
+    var displayScale = Math.max(1, Math.min(1.55, stageHeight / 520));
     var p = document.querySelector('.textbox > p, #dialogue');
-    if(p) p.style.setProperty('font-size', bodySz + 'px', 'important');
+    if(p) p.style.setProperty('font-size', Math.round(bodySz * displayScale) + 'px', 'important');
     var name = document.querySelector('.nameplate span, #speaker');
-    if(name) name.style.setProperty('font-size', nameSz + 'px', 'important');
+    if(name) name.style.setProperty('font-size', Math.round(nameSz * displayScale) + 'px', 'important');
     var en = document.querySelector('.nameplate small, #speakerEn');
-    if(en) en.style.setProperty('font-size', Math.max(9, Math.round(nameSz * 0.65)) + 'px', 'important');
+    if(en) en.style.setProperty('font-size', Math.max(9, Math.round(nameSz * 0.65 * displayScale)) + 'px', 'important');
     var nl = document.getElementById('nameFontSizeLabel');
     if(nl) nl.textContent = nameSz + 'px';
     var bl = document.getElementById('bodyFontSizeLabel');
@@ -151,6 +154,7 @@
       }
     }catch(e){}
   }
+  window.addEventListener('resize', applyFonts);
   function setNameSize(sz){
     sz = Math.max(12, Math.min(48, sz|0));
     localStorage.setItem(KEY_NAME, String(sz));

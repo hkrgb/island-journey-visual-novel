@@ -42,10 +42,10 @@
     o.src='stats-overlay.js?v=5';
     document.body.appendChild(o);
     const e=document.createElement('script');
-    e.src='game-enhance.js?v=12';
+    e.src='game-enhance.js?v=13';
     document.body.appendChild(e);
     const p=document.createElement('script');
-    p.src='backpack.js?v=5';
+    p.src='backpack.js?v=6';
     document.body.appendChild(p);
   };
   script.onerror=()=>console.error('game-core-loader.js failed to load');

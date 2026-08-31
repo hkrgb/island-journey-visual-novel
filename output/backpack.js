@@ -53,6 +53,22 @@
         render(b.getAttribute('data-tab'));
       };
     });
+    var preview=document.createElement('div');
+    preview.id='pack-preview';preview.className='modal';
+    preview.innerHTML='<div class="pack-preview-card" role="dialog" aria-modal="true" aria-label="收藏品放大預覽"><button class="close" type="button" aria-label="關閉預覽">×</button><img id="packPreviewImage" alt=""><div><small id="packPreviewType"></small><h2 id="packPreviewName"></h2><p id="packPreviewInfo"></p></div></div>';
+    document.body.appendChild(preview);
+    preview.querySelector('.close').onclick=function(){preview.classList.remove('open');};
+    preview.onclick=function(e){if(e.target===preview)preview.classList.remove('open');};
+  }
+  function showPreview(image,name,type,info){
+    var preview=document.getElementById('pack-preview');
+    if(!preview)return;
+    var img=document.getElementById('packPreviewImage');
+    img.src=image||'';img.alt=name||'收藏品';
+    document.getElementById('packPreviewName').textContent=name||'收藏品';
+    document.getElementById('packPreviewType').textContent=type||'';
+    document.getElementById('packPreviewInfo').textContent=info||'';
+    preview.classList.add('open');
   }
   function vars(){
     var v=(window.state&&state.vars)||{};
@@ -82,7 +98,9 @@
         var art=document.createElement('article');
         art.className='pack-item certificate-item';
         art.innerHTML='<img src="'+(cert.image||'')+'" alt=""><b>'+(cert.name||'達人證書')+'</b><span>已永久收藏</span>';
-        art.onclick=function(){window.open(cert.image,'_blank','noopener')};
+        art.tabIndex=0;art.setAttribute('role','button');
+        art.onclick=function(){showPreview(cert.image,cert.name||'達人證書','MASTER CERTIFICATE','已永久收藏');};
+        art.onkeydown=function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();art.click();}};
         grid.appendChild(art);
       });
       return;
@@ -94,6 +112,9 @@
         var art=document.createElement('article');
         art.className='pack-item';
         art.innerHTML='<img src="'+abs(x.image,FISH_BASE)+'" alt=""><b>'+(x.name||'魚獲')+'</b><span>'+(x.weight||'?')+' kg · '+(x.points||0)+' 分</span><small>'+(x.area||'')+'</small>';
+        art.tabIndex=0;art.setAttribute('role','button');
+        art.onclick=function(){showPreview(abs(x.image,FISH_BASE),x.name||'魚獲','FISH COLLECTION',(x.enName?x.enName+' · ':'')+(x.weight||'?')+' kg'+(x.area?' · '+x.area:''));};
+        art.onkeydown=function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();art.click();}};
         grid.appendChild(art);
       });
       return;
@@ -109,6 +130,9 @@
         var art=document.createElement('article');
         art.className='pack-item';
         art.innerHTML='<img src="'+abs(card.image,GACHA_BASE)+'" alt=""><b>'+(card.name||id)+'</b><span>'+(card.rarity||'')+' × '+data.album[id]+'</span>';
+        art.tabIndex=0;art.setAttribute('role','button');
+        art.onclick=function(){showPreview(abs(card.image,GACHA_BASE),card.name||id,'CARD COLLECTION',(card.rarity||'收藏卡')+' · 已有 '+data.album[id]+' 張');};
+        art.onkeydown=function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();art.click();}};
         grid.appendChild(art);
       });
     });
