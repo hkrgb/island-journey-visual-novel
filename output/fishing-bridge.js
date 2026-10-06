@@ -9,6 +9,10 @@
  const timer=setInterval(()=>{
   if(window.FISHING_CONTENT_FAILED){clearInterval(timer);send('error');return;}
   if(!window.FISHING_CONTENT_READY||typeof window.start!=='function'||!window.start.__preloadWrapped){if(++tries>180){clearInterval(timer);send('error');}return;}
+  // The legacy core asks for the next chapter even after the final line.
+  // Clamp that lookup so next() can reach render() and finish() normally.
+  const chapterLookup=window.chapterOf;
+  if(typeof chapterLookup==='function')window.chapterOf=index=>chapterLookup(Math.max(0,Math.min(index,window.STORY.length-1)));
   clearInterval(timer);started=true;send('ready');window.start(true,0);
  },200);
  const observer=new MutationObserver(()=>{if(started&&!completed&&document.querySelector('#ending.active')){completed=true;send('complete');}});
