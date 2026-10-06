@@ -20,6 +20,7 @@
    if(response.ok){const data=await response.json(),raw=data.fields?.payload?.stringValue;if(raw)p=JSON.parse(raw)}
   }
   if(p){
+   window.FISHING_CONTENT_READY=true;
    const refs=[...Object.values(p.assets?.bg||{}),...Object.values(p.assets?.sprite||{}),p.settings?.coverImage,p.settings?.logoImage,p.settings?.defaultBg].filter(v=>v?.startsWith?.('firestore:'));
    const cache={};
    await Promise.all([...new Set(refs)].map(async ref=>{const id=ref.slice(10),response=await fetch(`https://firestore.googleapis.com/v1/projects/island-journey-rgb/databases/(default)/documents/media/${encodeURIComponent(id)}`);if(response.ok){const data=await response.json();cache[ref]=data.fields?.dataUrl?.stringValue||''}}));
@@ -33,7 +34,8 @@
    if(window.GAME_SETTINGS.logoImage)window.GAME_SETTINGS.logoImage=resolve(window.GAME_SETTINGS.logoImage);
    if(window.GAME_SETTINGS.defaultBg)window.GAME_SETTINGS.defaultBg=resolve(window.GAME_SETTINGS.defaultBg);
   }
- }catch(e){console.warn('Using bundled story',e)}
+  if(!p&&new URLSearchParams(location.search).get('fishing')==='1')throw new Error('Story unavailable');
+ }catch(e){window.FISHING_CONTENT_FAILED=true;console.warn('Using bundled story',e)}
  finally{
   const script=document.createElement('script');
   script.src='game-core-loader.js?v=10';
