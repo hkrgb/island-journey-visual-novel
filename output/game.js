@@ -44,7 +44,7 @@
     o.src='stats-overlay.js?v=5';
     document.body.appendChild(o);
     const e=document.createElement('script');
-    e.src='game-enhance.js?v=20261007';
+    e.src='game-enhance.js?v=20261007b';
     document.body.appendChild(e);
     const p=document.createElement('script');
     p.src='backpack.js?v=6';
