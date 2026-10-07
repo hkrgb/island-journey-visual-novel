@@ -133,7 +133,7 @@
   }
   function applyFonts(){
     var nameSz = getNameSize();
-    var bodySz = getBodySize();
+    var bodySz = document.documentElement.classList.contains('fishingEmbed') ? ({small:22,medium:28,large:34}[document.documentElement.dataset.theatreFontSize] || 22) : getBodySize();
     var app = document.getElementById('app');
     var stageHeight = app ? app.getBoundingClientRect().height : window.innerHeight;
     var displayScale = Math.max(1, Math.min(1.55, stageHeight / 520));
