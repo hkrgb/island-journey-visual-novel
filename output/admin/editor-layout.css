@@ -1,0 +1,18 @@
+/* Let the chapter list consume the actual remaining sidebar height. */
+[hidden]{display:none!important}
+.workspace{min-height:0;height:calc(100dvh - 70px)}
+.workspace>aside{display:flex;flex-direction:column;min-height:0}
+.workspace>aside>.aside-head,.workspace>aside>.title-nav,.workspace>aside>#search{flex-shrink:0}
+#chapterTree{flex:1;min-height:0;height:auto;overflow:auto;padding-bottom:36px;scrollbar-gutter:stable}
+.dialogue-card{display:grid;grid-template-columns:minmax(0,2fr) minmax(180px,1fr);gap:12px}
+.dialogue-card>.dialogue-number,.dialogue-card>.line-actions{grid-column:1/-1}
+.dialogue-card>.line-grid,.dialogue-card>label,.dialogue-card>.choice-editor{grid-column:1}
+.dialogue-card .line-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+.dialogue-card .line-grid .sprite-adjustments{grid-column:1/-1;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.line-preview{grid-column:2;grid-row:2/5;align-self:start;position:sticky;top:0;aspect-ratio:16/9;overflow:hidden;background:#102d40}
+.line-preview img.preview-background{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.line-preview img.preview-character{position:absolute;bottom:2%;width:52%;height:82%;object-fit:contain;object-position:center bottom;transform-origin:center bottom}
+.line-preview small{position:absolute;bottom:0;left:0;right:0;color:white;background:#071720b0;padding:5px;font-size:10px}
+.status{position:sticky;top:-24px;z-index:5;padding:10px;background:#e8edf0}
+@media(max-width:1000px){.dialogue-card{grid-template-columns:1fr}.dialogue-card>.line-preview{grid-column:1;grid-row:auto;position:relative}.line-preview{max-width:480px}}
+@media(max-width:800px){.workspace{height:auto}.workspace>aside{height:40dvh}#chapterTree{height:auto}.editor{height:60dvh}}

@@ -16,7 +16,7 @@
   }
   else{
    const path=gameId==='island-journey'?'content/published':`projects/${encodeURIComponent(gameId)}/content/published`;
-   const response=await fetch('https://firestore.googleapis.com/v1/projects/island-journey-rgb/databases/(default)/documents/'+path);
+   const response=await fetch('https://firestore.googleapis.com/v1/projects/island-journey-rgb/databases/(default)/documents/'+path+'?revision='+Date.now(),{cache:'no-store'});
    if(response.ok){const data=await response.json(),raw=data.fields?.payload?.stringValue;if(raw)p=JSON.parse(raw)}
   }
   if(p){
