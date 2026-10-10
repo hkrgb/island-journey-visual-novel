@@ -16,7 +16,8 @@
   }
   else{
    const path=gameId==='island-journey'?'content/published':`projects/${encodeURIComponent(gameId)}/content/published`;
-   const response=await fetch('https://firestore.googleapis.com/v1/projects/island-journey-rgb/databases/(default)/documents/'+path+'?revision='+Date.now(),{cache:'no-store'});
+   const response=await fetch('https://firestore.googleapis.com/v1/projects/island-journey-rgb/databases/(default)/documents/'+path,{cache:'no-store'});
+   if(!response.ok)throw new Error('Story request failed: HTTP '+response.status);
    if(response.ok){const data=await response.json(),raw=data.fields?.payload?.stringValue;if(raw)p=JSON.parse(raw)}
   }
   if(p){
@@ -34,9 +35,14 @@
    if(window.GAME_SETTINGS.logoImage)window.GAME_SETTINGS.logoImage=resolve(window.GAME_SETTINGS.logoImage);
    if(window.GAME_SETTINGS.defaultBg)window.GAME_SETTINGS.defaultBg=resolve(window.GAME_SETTINGS.defaultBg);
   }
-  if(!p&&new URLSearchParams(location.search).get('fishing')==='1')throw new Error('Story unavailable');
+  if(!p&&gameId!=='island-journey')throw new Error('Story unavailable');
  }catch(e){window.FISHING_CONTENT_FAILED=true;console.warn('Using bundled story',e)}
  finally{
+  if(window.FISHING_CONTENT_FAILED&&new URLSearchParams(location.search).get('game')){
+   const panel=document.createElement('div');panel.style.cssText='position:fixed;inset:0;z-index:10000;display:grid;place-content:center;text-align:center;background:#071720;color:white;padding:24px';
+   const message=document.createElement('p');message.textContent='暫時未能載入這個故事，請重新載入。你的遊戲資料未有更改。';
+   const retry=document.createElement('button');retry.textContent='重新載入';retry.onclick=()=>location.reload();panel.append(message,retry);document.body.appendChild(panel);return;
+  }
   const script=document.createElement('script');
   script.src='game-core-loader.js?v=10';
   script.onload=function(){
