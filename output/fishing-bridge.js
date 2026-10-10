@@ -1,7 +1,7 @@
 /* Only the fishing embed opts in; standalone visual novels keep their UI. */
 (()=>{
  const q=new URLSearchParams(location.search),origin=q.get('parentOrigin'),session=q.get('session'),game=q.get('game');
- if(q.get('fishing')!=='1'||parent===window||!['https://play.rgb-workshop.com','https://hkrgb.github.io','https://appassets.androidplatform.net'].includes(origin)||!session||!['拋海星的人-musby6ef','給爸爸的生日禮物-mv1wlsxc'].includes(game))return;
+ if(q.get('fishing')!=='1'||parent===window||!['https://play.rgb-workshop.com','https://hkrgb.github.io','https://appassets.androidplatform.net','island://localhost'].includes(origin)||!session||!['拋海星的人-musby6ef','給爸爸的生日禮物-mv1wlsxc'].includes(game))return;
  document.documentElement.classList.add('fishingEmbed');
  const send=type=>parent.postMessage({channel:'island-theatre',type,game,session},origin);
  const style=document.createElement('style');style.textContent='.fishingEmbed .topbar,.fishingEmbed #mobile-fullscreen,.fishingEmbed #orientation-lock,.fishingEmbed #game-menu,.fishingEmbed #title{display:none!important}.fishingEmbed #app{width:100vw!important;height:100vh!important;max-width:none!important;max-height:none!important;aspect-ratio:auto!important}.fishingEmbed .sprite{max-height:82vh}.fishingEmbed .textbox{bottom:14px}';document.head.append(style);
